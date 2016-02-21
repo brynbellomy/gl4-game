@@ -1,6 +1,6 @@
 package common
 
-func Rect(size *Size) []float32 {
+func Rect(size Size) []float32 {
 	halfWidth := size.Width / 2
 	halfHeight := size.Height / 2
 	return []float32{

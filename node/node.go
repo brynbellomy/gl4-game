@@ -20,7 +20,7 @@ type (
 	}
 
 	INode interface {
-		Update()
+		Render()
 		Children() []INode
 		AddChild(child INode)
 		Position() mgl32.Vec2
@@ -57,7 +57,7 @@ func (n *Node) AddChild(child INode) {
 	n.children = append(n.children, child)
 }
 
-func (n *Node) Update() {
+func (n *Node) Render() {
 	// Update
 	{
 		t := glfw.GetTime()
@@ -71,6 +71,6 @@ func (n *Node) Update() {
 	}
 
 	for _, child := range n.Children() {
-		child.Update()
+		child.Render()
 	}
 }

@@ -13,7 +13,7 @@ import (
 
 type (
 	SpriteNode struct {
-		*Node
+		// *Node
 
 		program  uint32 // shader program
 		vao      uint32 // vertex array object
@@ -24,16 +24,22 @@ type (
 		model mgl32.Mat4 // model matrix
 
 		texture  uint32 // texture id
-		size     *common.Size
+		size     common.Size
 		position mgl32.Vec2
 
 		previousTime, totalTime float64
+	}
+
+	IRenderNode interface {
+		SetPos(pos mgl32.Vec2)
+		SetSize(size common.Size)
+		Render()
 	}
 )
 
 type SpriteNodeConfig struct {
 	Projection  mgl32.Mat4
-	Size        *common.Size
+	Size        common.Size
 	Position    mgl32.Vec2
 	TextureFile string
 }
@@ -75,7 +81,7 @@ func NewSpriteNode(config SpriteNodeConfig) *SpriteNode {
 	gl.BindVertexArray(vao)
 
 	// Configure the vertex data
-	vertices := common.Rect(config.Size)
+	vertices := common.Rect(common.Size{1.0, 1.0})
 
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
@@ -98,27 +104,32 @@ func NewSpriteNode(config SpriteNodeConfig) *SpriteNode {
 		uTexture: textureUniform,
 		model:    model,
 		texture:  texture,
-		Node: New(Config{
-			Size:     config.Size,
-			Position: config.Position,
-		}),
+		size:     config.Size,
+		position: config.Position,
 	}
 }
 
-func (n *SpriteNode) Update() {
-	n.Node.Update()
+func (n *SpriteNode) SetPos(pos mgl32.Vec2) {
+	n.position = pos
+}
 
-	n.model = mgl32.Translate3D(n.Node.Position().X(), n.Node.Position().Y(), 0.0)
+func (n *SpriteNode) SetSize(size common.Size) {
+	n.size = size
+}
 
-	// Update
+func (n *SpriteNode) Render() {
+	// n.Node.Update()
+
 	gl.UseProgram(n.program)
+
+	trans := mgl32.Translate3D(n.position.X(), n.position.Y(), 0.0)
+	scale := mgl32.Scale3D(n.size.Width, n.size.Height, 1.0)
+	n.model = trans.Mul4(scale)
+
 	gl.UniformMatrix4fv(n.uModel, 1, false, &n.model[0])
 
 	// camera := mgl32.LookAtV(mgl32.Vec3{3, 3, 3}, mgl32.Vec3{0, 0, 0}, mgl32.Vec3{0, 1, 0})
 	// gl.UniformMatrix4fv(n.uCamera, 1, false, &n.camera[0])
-
-	// x := float32(rand.Intn(1000)) / 1000
-	// n.size = &common.Size{Width: x, Height: x}
 
 	gl.BindVertexArray(n.vao)
 
