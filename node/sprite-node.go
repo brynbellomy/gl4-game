@@ -6,9 +6,9 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 
-	"github.com/brynbellomy/gl-test/common"
-	"github.com/brynbellomy/gl-test/shader"
-	"github.com/brynbellomy/gl-test/texture"
+	"github.com/brynbellomy/gl4-game/common"
+	"github.com/brynbellomy/gl4-game/shader"
+	"github.com/brynbellomy/gl4-game/texture"
 )
 
 type (

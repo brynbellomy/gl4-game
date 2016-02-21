@@ -1,8 +1,8 @@
 package scene
 
 import (
-	"github.com/brynbellomy/gl-test/input"
-	"github.com/brynbellomy/gl-test/node"
+	"github.com/brynbellomy/gl4-game/input"
+	"github.com/brynbellomy/gl4-game/node"
 )
 
 type (

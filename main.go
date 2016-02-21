@@ -10,10 +10,10 @@ import (
 	"github.com/go-gl/glfw/v3.1/glfw"
 	"github.com/go-gl/mathgl/mgl32"
 
-	"github.com/brynbellomy/gl-test/common"
-	"github.com/brynbellomy/gl-test/input"
-	"github.com/brynbellomy/gl-test/node"
-	"github.com/brynbellomy/gl-test/scene"
+	"github.com/brynbellomy/gl4-game/common"
+	"github.com/brynbellomy/gl4-game/input"
+	"github.com/brynbellomy/gl4-game/node"
+	"github.com/brynbellomy/gl4-game/scene"
 )
 
 const windowWidth = 1280

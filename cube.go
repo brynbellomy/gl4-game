@@ -7,8 +7,8 @@ import (
 	"github.com/go-gl/glfw/v3.1/glfw"
 	"github.com/go-gl/mathgl/mgl32"
 
-	"github.com/brynbellomy/gl-test/shader"
-	"github.com/brynbellomy/gl-test/texture"
+	"github.com/brynbellomy/gl4-game/shader"
+	"github.com/brynbellomy/gl4-game/texture"
 )
 
 type Cube struct {
