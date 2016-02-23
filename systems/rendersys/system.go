@@ -1,6 +1,8 @@
 package rendersys
 
 import (
+	"github.com/go-gl/mathgl/mgl32"
+
 	"github.com/brynbellomy/gl4-game/context"
 	"github.com/brynbellomy/gl4-game/entity"
 	"github.com/brynbellomy/gl4-game/node"
@@ -9,7 +11,12 @@ import (
 
 type (
 	System struct {
-		entities []entityAspect
+		entities   []entityAspect
+		renderRoot node.INode
+	}
+
+	IRenderContext interface {
+		CurrentTransform() mgl32.Mat4
 	}
 
 	entityAspect struct {
@@ -18,21 +25,31 @@ type (
 	}
 )
 
-func New() *System {
+func New(renderRoot node.INode) *System {
 	return &System{
-		entities: []entityAspect{},
+		entities:   []entityAspect{},
+		renderRoot: renderRoot,
 	}
 }
 
 func (s *System) Update(c context.IContext) {
 	for _, ent := range s.entities {
-		node := ent.renderCmpt.renderNode
+		rnode := ent.renderCmpt.renderNode
 
-		node.SetPos(ent.positionCmpt.Pos())
-		// node.SetSize()
-
-		node.Render()
+		rnode.SetPos(ent.positionCmpt.Pos())
+		rnode.SetSize(ent.positionCmpt.Size())
+		rnode.SetTexture(ent.renderCmpt.Texture())
 	}
+
+	s.render(s.renderRoot)
+}
+
+func (s *System) render(node node.INode) {
+	// renderCtx := NewRenderContext()
+	for _, child := range node.Children() {
+		s.render(child)
+	}
+	node.Render()
 }
 
 func (s *System) EntityWillJoin(eid entity.ID, components []entity.IComponent) {
@@ -43,7 +60,7 @@ func (s *System) EntityWillJoin(eid entity.ID, components []entity.IComponent) {
 	for _, cmpt := range components {
 		if rc, is := cmpt.(*Component); is {
 			renderCmpt = rc
-		} else if pc, is := cmpt.(positionsys.IComponent); is {
+		} else if pc, is := cmpt.(*positionsys.Component); is {
 			positionCmpt = pc
 		}
 
@@ -64,22 +81,4 @@ func (s *System) EntityWillJoin(eid entity.ID, components []entity.IComponent) {
 
 		s.entities = append(s.entities, aspect)
 	}
-}
-
-type (
-	Component struct {
-		renderNode *node.SpriteNode
-	}
-
-	IComponent interface {
-		RenderNode() node.IRenderNode
-	}
-)
-
-func NewComponent(renderNode *node.SpriteNode) IComponent {
-	return &Component{renderNode}
-}
-
-func (c *Component) RenderNode() node.IRenderNode {
-	return c.renderNode
 }
