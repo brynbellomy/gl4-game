@@ -8,11 +8,12 @@ import (
 
 type (
 	Component struct {
-		atlas          *texture.Atlas
-		animation      string
-		currentIndex   int
-		animationStart time.Time
-		fps            int
+		atlas               *texture.Atlas
+		animation           string
+		animationHasChanged bool
+		currentIndex        int
+		animationStart      time.Time
+		fps                 int
 	}
 )
 

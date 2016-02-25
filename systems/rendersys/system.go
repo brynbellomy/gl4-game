@@ -25,11 +25,14 @@ type (
 	}
 )
 
-func New(renderRoot node.INode) *System {
+func New() *System {
 	return &System{
-		entities:   []entityAspect{},
-		renderRoot: renderRoot,
+		entities: []entityAspect{},
 	}
+}
+
+func (s *System) SetRenderRoot(root node.INode) {
+	s.renderRoot = root
 }
 
 func (s *System) Update(c context.IContext) {
@@ -46,10 +49,10 @@ func (s *System) Update(c context.IContext) {
 
 func (s *System) render(node node.INode) {
 	// renderCtx := NewRenderContext()
+	node.Render()
 	for _, child := range node.Children() {
 		s.render(child)
 	}
-	node.Render()
 }
 
 func (s *System) EntityWillJoin(eid entity.ID, components []entity.IComponent) {

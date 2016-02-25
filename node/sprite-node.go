@@ -109,8 +109,6 @@ func (n *SpriteNode) SetTexture(tex uint32) {
 }
 
 func (n *SpriteNode) Render() {
-	n.Node.Render()
-
 	gl.UseProgram(n.program)
 
 	trans := mgl32.Translate3D(n.position.X(), n.position.Y(), 0.0)

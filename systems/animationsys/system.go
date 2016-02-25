@@ -11,7 +11,8 @@ import (
 
 type (
 	System struct {
-		entities []entityAspect
+		entities  []entityAspect
+		entityMap map[entity.ID]*entityAspect
 	}
 
 	entityAspect struct {
@@ -22,7 +23,33 @@ type (
 
 func New() *System {
 	return &System{
-		entities: make([]entityAspect, 0),
+		entities:  make([]entityAspect, 0),
+		entityMap: make(map[entity.ID]*entityAspect),
+	}
+}
+
+func (s *System) GetAnimation(eid entity.ID) string {
+	if e, exists := s.entityMap[eid]; exists {
+		return e.animationCmpt.animation
+	} else {
+		panic("entity does not exist")
+	}
+}
+
+func (s *System) SetAnimation(eid entity.ID, animation string) {
+	if e, exists := s.entityMap[eid]; exists {
+		cmpt := e.animationCmpt
+
+		cmpt.animationHasChanged = (cmpt.animation != animation)
+		cmpt.animation = animation
+
+		if cmpt.animationHasChanged {
+			cmpt.animationStart = time.Now()
+			cmpt.currentIndex = 0
+		}
+
+	} else {
+		panic("entity does not exist")
 	}
 }
 
@@ -73,5 +100,6 @@ func (s *System) EntityWillJoin(eid entity.ID, components []entity.IComponent) {
 
 		aspect := entityAspect{animationCmpt: animationCmpt, renderCmpt: renderCmpt}
 		s.entities = append(s.entities, aspect)
+		s.entityMap[eid] = &aspect
 	}
 }
