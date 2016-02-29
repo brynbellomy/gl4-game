@@ -7,11 +7,6 @@ type (
 		queuedEvents []IEvent
 	}
 
-	IEnqueuer interface {
-		BecomeInputResponder(window *glfw.Window)
-		FlushEvents() []IEvent
-	}
-
 	IEvent interface{}
 )
 

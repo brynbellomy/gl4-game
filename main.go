@@ -12,7 +12,7 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 
-	"github.com/brynbellomy/gl4-game/scenes"
+	"github.com/brynbellomy/gl4-game/scenes/mainscene"
 )
 
 const windowWidth = 1280
@@ -50,7 +50,7 @@ func main() {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.ClearColor(0.0, 0.0, 0.0, 1.0)
 
-	scn, err := scenes.NewMainScene(window, assetPath)
+	scn, err := mainscene.NewMainScene(window, assetPath)
 	if err != nil {
 		panic(err)
 	}

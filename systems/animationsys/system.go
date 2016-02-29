@@ -2,9 +2,8 @@ package animationsys
 
 import (
 	"math"
-	"time"
 
-	"github.com/brynbellomy/gl4-game/context"
+	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
 	"github.com/brynbellomy/gl4-game/systems/rendersys"
 )
@@ -36,15 +35,16 @@ func (s *System) GetAnimation(eid entity.ID) string {
 	}
 }
 
-func (s *System) SetAnimation(eid entity.ID, animation string) {
+func (s *System) SetAnimation(eid entity.ID, animation string, animationStart common.Time) {
 	if e, exists := s.entityMap[eid]; exists {
 		cmpt := e.animationCmpt
 
 		cmpt.animationHasChanged = (cmpt.animation != animation)
 		cmpt.animation = animation
+		cmpt.isAnimating = true
 
 		if cmpt.animationHasChanged {
-			cmpt.animationStart = time.Now()
+			cmpt.animationStart = animationStart
 			cmpt.currentIndex = 0
 		}
 
@@ -53,17 +53,23 @@ func (s *System) SetAnimation(eid entity.ID, animation string) {
 	}
 }
 
-func (s *System) Update(c context.IContext) {
+func (s *System) Update(t common.Time) {
 	for _, e := range s.entities {
 		cmpt := e.animationCmpt
+
+		if !cmpt.isAnimating {
+			continue
+		}
 
 		textures := cmpt.atlas.Animation(cmpt.animation)
 		if len(textures) <= 0 {
 			continue
 		}
 
-		elapsed := time.Now().Sub(cmpt.animationStart)
-		totalFrames := int64(math.Floor(elapsed.Seconds() * float64(cmpt.fps)))
+		elapsedNano := t - cmpt.animationStart
+
+		// elapsed := time.Now().Sub(cmpt.animationStart)
+		totalFrames := int64(math.Floor(elapsedNano.Seconds() * float64(cmpt.fps)))
 		newIndex := int(totalFrames % int64(len(textures)))
 
 		if cmpt.currentIndex == 0 || newIndex != cmpt.currentIndex {
@@ -74,8 +80,7 @@ func (s *System) Update(c context.IContext) {
 	}
 }
 
-func (s *System) EntityWillJoin(eid entity.ID, components []entity.IComponent) {
-	// if we find a *animationsys.Component on the entity, we keep track of it
+func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {
 	var animationCmpt *Component
 	var renderCmpt *rendersys.Component
 
@@ -96,7 +101,7 @@ func (s *System) EntityWillJoin(eid entity.ID, components []entity.IComponent) {
 			panic("animation component requires render component")
 		}
 
-		animationCmpt.animationStart = time.Now()
+		// animationCmpt.animationStart = time.Now()
 
 		aspect := entityAspect{animationCmpt: animationCmpt, renderCmpt: renderCmpt}
 		s.entities = append(s.entities, aspect)

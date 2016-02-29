@@ -8,36 +8,25 @@ import (
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/shader"
+	"github.com/brynbellomy/gl4-game/systems/rendersys"
 )
 
 type (
 	SpriteNode struct {
-		*Node
-
-		program  uint32 // shader program
-		vao      uint32 // vertex array object
-		uCamera  int32  // camera uniform
-		uModel   int32  // model uniform
-		uTexture int32  // texture uniform
-
-		model mgl32.Mat4 // model matrix
+		program     uint32 // shader program
+		vao         uint32 // vertex array object
+		uCamera     int32  // camera uniform
+		uModel      int32  // model uniform
+		uProjection int32  // texture uniform
+		uTexture    int32  // texture uniform
 
 		texture  uint32 // texture id
 		size     common.Size
 		position mgl32.Vec2
-
-		previousTime, totalTime float64
 	}
 )
 
-type SpriteNodeConfig struct {
-	Projection mgl32.Mat4
-	Size       common.Size
-	Position   mgl32.Vec2
-	Texture    uint32
-}
-
-func NewSpriteNode(config SpriteNodeConfig) *SpriteNode {
+func NewSpriteNode() *SpriteNode {
 	// Configure the vertex and fragment shaders
 	program, err := shader.NewProgram(vertexShader, fragmentShader)
 	if err != nil {
@@ -46,16 +35,18 @@ func NewSpriteNode(config SpriteNodeConfig) *SpriteNode {
 
 	gl.UseProgram(program)
 
+	defaultProjection := mgl32.Ident4()
 	projectionUniform := gl.GetUniformLocation(program, gl.Str("projection\x00"))
-	gl.UniformMatrix4fv(projectionUniform, 1, false, &config.Projection[0])
+	gl.UniformMatrix4fv(projectionUniform, 1, false, &defaultProjection[0])
 
-	camera := mgl32.LookAtV(mgl32.Vec3{0, 0, 3}, mgl32.Vec3{0, 0, 0}, mgl32.Vec3{0, -1, 0})
+	// defaultCamera := mgl32.LookAtV(mgl32.Vec3{0, 0, 3}, mgl32.Vec3{0, 0, 0}, mgl32.Vec3{0, -1, 0})
+	defaultCamera := mgl32.Ident4()
 	cameraUniform := gl.GetUniformLocation(program, gl.Str("camera\x00"))
-	gl.UniformMatrix4fv(cameraUniform, 1, false, &camera[0])
+	gl.UniformMatrix4fv(cameraUniform, 1, false, &defaultCamera[0])
 
-	model := mgl32.Ident4()
+	defaultModel := mgl32.Ident4()
 	modelUniform := gl.GetUniformLocation(program, gl.Str("model\x00"))
-	gl.UniformMatrix4fv(modelUniform, 1, false, &model[0])
+	gl.UniformMatrix4fv(modelUniform, 1, false, &defaultModel[0])
 
 	textureUniform := gl.GetUniformLocation(program, gl.Str("tex\x00"))
 	gl.Uniform1i(textureUniform, 0)
@@ -83,16 +74,11 @@ func NewSpriteNode(config SpriteNodeConfig) *SpriteNode {
 	gl.VertexAttribPointer(texCoordAttrib, 2, gl.FLOAT, false, 5*4, gl.PtrOffset(3*4))
 
 	return &SpriteNode{
-		Node:     New(),
 		program:  program,
 		vao:      vao,
 		uCamera:  cameraUniform,
 		uModel:   modelUniform,
 		uTexture: textureUniform,
-		model:    model,
-		texture:  config.Texture,
-		size:     config.Size,
-		position: config.Position,
 	}
 }
 
@@ -108,14 +94,16 @@ func (n *SpriteNode) SetTexture(tex uint32) {
 	n.texture = tex
 }
 
-func (n *SpriteNode) Render() {
+func (n *SpriteNode) Render(c rendersys.RenderContext) {
 	gl.UseProgram(n.program)
 
 	trans := mgl32.Translate3D(n.position.X(), n.position.Y(), 0.0)
 	scale := mgl32.Scale3D(n.size.Width(), n.size.Height(), 1.0)
-	n.model = trans.Mul4(scale)
+	model := trans.Mul4(scale)
 
-	gl.UniformMatrix4fv(n.uModel, 1, false, &n.model[0])
+	gl.UniformMatrix4fv(n.uModel, 1, false, &model[0])
+	gl.UniformMatrix4fv(n.uCamera, 1, false, &c.Camera[0])
+	gl.UniformMatrix4fv(n.uProjection, 1, false, &c.Projection[0])
 
 	gl.BindVertexArray(n.vao)
 

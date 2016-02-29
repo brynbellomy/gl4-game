@@ -6,14 +6,16 @@ import (
 
 type (
 	RenderContext struct {
-		currentTransform mgl32.Mat4
+		// currentTransform mgl32.Mat4
+		Projection mgl32.Mat4
+		Camera     mgl32.Mat4
 	}
 )
 
-func NewRenderContext() IRenderContext {
-	return &RenderContext{}
-}
+// func NewRenderContext() IRenderContext {
+// 	return &RenderContext{}
+// }
 
-func (c *RenderContext) CurrentTransform() mgl32.Mat4 {
-	return c.currentTransform
-}
+// func (c *RenderContext) CurrentTransform() mgl32.Mat4 {
+// 	return c.currentTransform
+// }

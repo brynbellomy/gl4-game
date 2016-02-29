@@ -1,15 +1,13 @@
 package rendersys
 
-import "github.com/brynbellomy/gl4-game/node"
-
 type (
 	Component struct {
-		renderNode *node.SpriteNode
+		renderNode INode
 		texture    uint32
 	}
 )
 
-func NewComponent(renderNode *node.SpriteNode, texture uint32) *Component {
+func NewComponent(renderNode INode, texture uint32) *Component {
 	return &Component{renderNode, texture}
 }
 
