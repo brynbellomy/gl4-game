@@ -7,7 +7,6 @@ import (
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
-	"github.com/brynbellomy/gl4-game/node"
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
 	"github.com/brynbellomy/gl4-game/systems/rendersys"
 	"github.com/brynbellomy/gl4-game/texture"
@@ -21,6 +20,6 @@ func bg(assetRoot string) ([]entity.IComponent, error) {
 
 	return []entity.IComponent{
 		positionsys.NewComponent(mgl32.Vec2{0, 0}, common.Size{2.0, 2.0}, 0),
-		rendersys.NewComponent(node.NewSpriteNode(), bgTexture),
+		rendersys.NewComponent(rendersys.NewSpriteNode(), bgTexture),
 	}, nil
 }

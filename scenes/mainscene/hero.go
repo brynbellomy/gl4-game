@@ -7,8 +7,9 @@ import (
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
-	"github.com/brynbellomy/gl4-game/node"
 	"github.com/brynbellomy/gl4-game/systems/animationsys"
+	"github.com/brynbellomy/gl4-game/systems/gameobjsys"
+	"github.com/brynbellomy/gl4-game/systems/physicssys"
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
 	"github.com/brynbellomy/gl4-game/systems/rendersys"
 	"github.com/brynbellomy/gl4-game/texture"
@@ -61,10 +62,20 @@ func hero(assetRoot string) ([]entity.IComponent, error) {
 		return nil, err
 	}
 
+	animationMap := map[gameobjsys.Action]map[gameobjsys.Direction]string{
+		gameobjsys.Action(0): map[gameobjsys.Direction]string{
+			gameobjsys.Down:  "walking-down",
+			gameobjsys.Left:  "walking-left",
+			gameobjsys.Up:    "walking-up",
+			gameobjsys.Right: "walking-right",
+		},
+	}
+
 	return []entity.IComponent{
 		positionsys.NewComponent(mgl32.Vec2{0, 0}, common.Size{0.2, 0.4}, 1),
-		rendersys.NewComponent(node.NewSpriteNode(), heroTexture),
-		animationsys.NewComponent(heroAtlas, "walking", 0, 2),
-		// steeringsys.NewComponent([]steeringsys.IBehavior{}),
+		physicssys.NewComponent(),
+		rendersys.NewComponent(rendersys.NewSpriteNode(), heroTexture),
+		animationsys.NewComponent(heroAtlas, "walking-down", 0, 2),
+		gameobjsys.NewComponent(gameobjsys.Action(0), gameobjsys.Down, animationMap),
 	}, nil
 }

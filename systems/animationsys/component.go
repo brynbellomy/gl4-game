@@ -7,13 +7,12 @@ import (
 
 type (
 	Component struct {
-		atlas               *texture.Atlas
-		isAnimating         bool
-		animation           string
-		animationHasChanged bool
-		currentIndex        int
-		animationStart      common.Time
-		fps                 int
+		atlas          *texture.Atlas
+		isAnimating    bool
+		animation      string
+		currentIndex   int
+		animationStart common.Time
+		fps            int
 	}
 )
 
@@ -26,4 +25,16 @@ func NewComponent(atlas *texture.Atlas, animation string, currentIndex int, fps 
 		animationStart: common.Time(0),
 		fps:            fps,
 	}
+}
+
+func (c *Component) SetFPS(fps int) {
+	c.fps = fps
+}
+
+func (c *Component) SetAnimation(animation string) {
+	c.animation = animation
+}
+
+func (c *Component) SetIsAnimating(is bool) {
+	c.isAnimating = is
 }

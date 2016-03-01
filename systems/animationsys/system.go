@@ -37,16 +37,17 @@ func (s *System) GetAnimation(eid entity.ID) string {
 
 func (s *System) SetAnimation(eid entity.ID, animation string, animationStart common.Time) {
 	if e, exists := s.entityMap[eid]; exists {
-		cmpt := e.animationCmpt
+		e.animationCmpt.animation = animation
+		e.animationCmpt.isAnimating = true
 
-		cmpt.animationHasChanged = (cmpt.animation != animation)
-		cmpt.animation = animation
-		cmpt.isAnimating = true
+	} else {
+		panic("entity does not exist")
+	}
+}
 
-		if cmpt.animationHasChanged {
-			cmpt.animationStart = animationStart
-			cmpt.currentIndex = 0
-		}
+func (s *System) StopAnimating(eid entity.ID) {
+	if e, exists := s.entityMap[eid]; exists {
+		e.animationCmpt.isAnimating = false
 
 	} else {
 		panic("entity does not exist")
@@ -67,8 +68,6 @@ func (s *System) Update(t common.Time) {
 		}
 
 		elapsedNano := t - cmpt.animationStart
-
-		// elapsed := time.Now().Sub(cmpt.animationStart)
 		totalFrames := int64(math.Floor(elapsedNano.Seconds() * float64(cmpt.fps)))
 		newIndex := int(totalFrames % int64(len(textures)))
 
@@ -101,10 +100,11 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 			panic("animation component requires render component")
 		}
 
-		// animationCmpt.animationStart = time.Now()
+		s.entities = append(s.entities, entityAspect{
+			animationCmpt: animationCmpt,
+			renderCmpt:    renderCmpt,
+		})
 
-		aspect := entityAspect{animationCmpt: animationCmpt, renderCmpt: renderCmpt}
-		s.entities = append(s.entities, aspect)
-		s.entityMap[eid] = &aspect
+		s.entityMap[eid] = &s.entities[len(s.entities)-1]
 	}
 }

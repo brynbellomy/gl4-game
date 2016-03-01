@@ -33,8 +33,8 @@ func (s *System) SetProjection(p mgl32.Mat4) {
 	s.projection = p
 }
 
-func (s *System) SetCamera(c mgl32.Mat4) {
-	s.camera = c
+func (s *System) SetCameraPos(pos mgl32.Vec2) {
+	s.camera = mgl32.LookAtV(mgl32.Vec3{pos.X(), pos.Y(), 3}, mgl32.Vec3{pos.X(), pos.Y(), 0}, mgl32.Vec3{0, -1, 0})
 }
 
 func (s *System) Update(t common.Time) {
@@ -43,10 +43,11 @@ func (s *System) Update(t common.Time) {
 		Camera:     s.camera,
 	}
 
+	// sort entities by z-index every time entity/component list changes
+	sort.Sort(sortableEntities(s.entities))
+
 	for _, ent := range s.entities {
 		rnode := ent.renderCmpt.renderNode
-
-		ent.positionCmpt.ZIndex()
 
 		rnode.SetPos(ent.positionCmpt.Pos())
 		rnode.SetSize(ent.positionCmpt.Size())
@@ -84,9 +85,6 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 
 		s.entities = append(s.entities, aspect)
 	}
-
-	// sort entities by z-index every time entity/component list changes
-	sort.Sort(sortableEntities(s.entities))
 }
 
 type sortableEntities []entityAspect
@@ -96,7 +94,16 @@ func (s sortableEntities) Len() int {
 }
 
 func (s sortableEntities) Less(i, j int) bool {
-	return s[i].positionCmpt.ZIndex() < s[j].positionCmpt.ZIndex()
+	z1 := s[i].positionCmpt.ZIndex()
+	z2 := s[j].positionCmpt.ZIndex()
+	if z1 < z2 {
+		return true
+	} else if z1 > z2 {
+		return false
+	} else {
+		// defer to y coordinate in the scene if the z-indices are the same
+		return s[i].positionCmpt.Pos().Y() < s[j].positionCmpt.Pos().Y()
+	}
 }
 
 func (s sortableEntities) Swap(i, j int) {

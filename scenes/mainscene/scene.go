@@ -1,6 +1,8 @@
 package mainscene
 
 import (
+	"time"
+
 	"github.com/go-gl/glfw/v3.1/glfw"
 	"github.com/go-gl/mathgl/mgl32"
 
@@ -9,6 +11,8 @@ import (
 	"github.com/brynbellomy/gl4-game/input"
 	"github.com/brynbellomy/gl4-game/scene"
 	"github.com/brynbellomy/gl4-game/systems/animationsys"
+	"github.com/brynbellomy/gl4-game/systems/gameobjsys"
+	"github.com/brynbellomy/gl4-game/systems/physicssys"
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
 	"github.com/brynbellomy/gl4-game/systems/rendersys"
 )
@@ -18,7 +22,8 @@ type (
 		*scene.Scene
 		window *glfw.Window
 
-		heroID entity.ID
+		heroID   entity.ID
+		cameraID entity.ID
 
 		inputQueue   *input.Enqueuer
 		inputState   inputState
@@ -26,43 +31,45 @@ type (
 		inputHandler InputHandler
 
 		positionSystem  *positionsys.System
+		physicsSystem   *physicssys.System
 		renderSystem    *rendersys.System
 		animationSystem *animationsys.System
-		// heroSystem      *herosys.System
-		// steeringSystem  *steeringsys.System
+		gameobjSystem   *gameobjsys.System
 	}
 )
 
 func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 	positionSystem := positionsys.New()
+	physicsSystem := physicssys.New()
 	renderSystem := rendersys.New()
 	animationSystem := animationsys.New()
-	// heroSystem := herosys.New()
-	// steeringSystem := steeringsys.New()
+	gameobjSystem := gameobjsys.New()
 
 	scn := scene.New(scene.Config{
 		AssetRoot: assetRoot,
 		Systems: []entity.ISystem{
 			positionSystem,
+			physicsSystem,
 			renderSystem,
 			animationSystem,
-			// heroSystem,
-			// steeringSystem,
+			gameobjSystem,
 		},
 	})
 
 	mainScene := &MainScene{
-		Scene:           scn,
-		window:          window,
+		Scene:  scn,
+		window: window,
+
 		positionSystem:  positionSystem,
+		physicsSystem:   physicsSystem,
 		renderSystem:    renderSystem,
 		animationSystem: animationSystem,
-		// steeringSystem:  steeringSystem,
-		// heroSystem:      heroSystem,
+		gameobjSystem:   gameobjSystem,
+
 		inputState: newInputState(),
 		inputHandler: InputHandler{
-			positionSystem:  positionSystem,
-			animationSystem: animationSystem,
+			physicsSystem: physicsSystem,
+			gameobjSystem: gameobjSystem,
 		},
 		inputQueue: input.NewEnqueuer(),
 	}
@@ -75,15 +82,20 @@ func (s *MainScene) Prepare() error {
 	projection := mgl32.Perspective(mgl32.DegToRad(45.0), float32(ww)/float32(wh), 0.1, 10.0)
 	s.renderSystem.SetProjection(projection)
 
-	camera := mgl32.LookAtV(mgl32.Vec3{0, 0, 3}, mgl32.Vec3{0, 0, 0}, mgl32.Vec3{0, -1, 0})
-	s.renderSystem.SetCamera(camera)
+	{
+		s.cameraID = entity.ID(0)
+		s.Scene.EntityManager().AddComponents(s.cameraID, []entity.IComponent{
+			positionsys.NewComponent(mgl32.Vec2{0, 0}, common.Size{0, 0}, 0),
+		})
+		s.renderSystem.SetCameraPos(mgl32.Vec2{0, 0})
+	}
 
 	{
 		bgCmpts, err := bg(s.AssetRoot())
 		if err != nil {
 			return err
 		}
-		s.Scene.EntityManager().AddComponents(entity.ID(0), bgCmpts)
+		s.Scene.EntityManager().AddComponents(entity.ID(1), bgCmpts)
 	}
 
 	{
@@ -91,11 +103,14 @@ func (s *MainScene) Prepare() error {
 		if err != nil {
 			return err
 		}
-		s.heroID = entity.ID(1)
+		s.heroID = entity.ID(2)
 		s.Scene.EntityManager().AddComponents(s.heroID, heroCmpts)
 	}
 
-	// s.steeringSystem.AddBehavior(s.heroID, &steeringbehaviors.Constant{Vec: mgl32.Vec2{0.005, 0.005}})
+	go func() {
+		time.Sleep(2 * time.Second)
+		s.physicsSystem.AddForce(s.heroID, mgl32.Vec2{10, 10})
+	}()
 
 	s.inputQueue.BecomeInputResponder(s.window)
 	s.inputHandler.SetControlledEntity(s.heroID)
@@ -104,11 +119,17 @@ func (s *MainScene) Prepare() error {
 }
 
 func (s *MainScene) Update() {
-	t := common.Now() //time.Now().UTC().UnixNano()
+	t := common.Now()
 
 	// update input
 	s.inputState = s.inputMapper.MapInputs(s.inputState.Clone(), s.inputQueue.FlushEvents())
 	s.inputHandler.HandleInputState(t, s.inputState)
 
-	s.Scene.Update(t)
+	s.gameobjSystem.Update(t)
+	s.physicsSystem.Update(t)
+	s.positionSystem.Update(t)
+	s.animationSystem.Update(t)
+
+	s.renderSystem.SetCameraPos(s.positionSystem.GetPos(s.heroID))
+	s.renderSystem.Update(t)
 }

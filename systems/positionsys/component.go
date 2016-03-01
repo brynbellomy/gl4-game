@@ -11,11 +11,6 @@ type (
 		pos    mgl32.Vec2
 		size   common.Size
 		zindex int
-
-		velocity mgl32.Vec2
-		// acceleration mgl32.Vec2
-
-		totalCurrentForce mgl32.Vec2
 	}
 
 	IComponent interface {
@@ -27,16 +22,6 @@ type (
 
 		ZIndex() int
 		SetZIndex(z int)
-
-		Velocity() mgl32.Vec2
-		SetVelocity(vel mgl32.Vec2)
-
-		// Acceleration() mgl32.Vec2
-		// SetAcceleration(accel mgl32.Vec2)
-
-		AddForce(f mgl32.Vec2)
-		CurrentForces() mgl32.Vec2
-		ResetForces()
 	}
 )
 
@@ -66,32 +51,4 @@ func (c *Component) ZIndex() int {
 
 func (c *Component) SetZIndex(z int) {
 	c.zindex = z
-}
-
-func (c *Component) Velocity() mgl32.Vec2 {
-	return c.velocity
-}
-
-func (c *Component) SetVelocity(velocity mgl32.Vec2) {
-	c.velocity = velocity
-}
-
-// func (c *Component) Acceleration() mgl32.Vec2 {
-// 	return c.acceleration
-// }
-
-// func (c *Component) SetAcceleration(acceleration mgl32.Vec2) {
-// 	c.acceleration = acceleration
-// }
-
-func (c *Component) AddForce(f mgl32.Vec2) {
-	c.totalCurrentForce = c.totalCurrentForce.Add(f)
-}
-
-func (c *Component) CurrentForces() mgl32.Vec2 {
-	return c.totalCurrentForce
-}
-
-func (c *Component) ResetForces() {
-	c.totalCurrentForce = mgl32.Vec2{}
 }

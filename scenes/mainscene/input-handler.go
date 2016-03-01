@@ -7,13 +7,13 @@ import (
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
-	"github.com/brynbellomy/gl4-game/systems/animationsys"
-	"github.com/brynbellomy/gl4-game/systems/positionsys"
+	"github.com/brynbellomy/gl4-game/systems/gameobjsys"
+	"github.com/brynbellomy/gl4-game/systems/physicssys"
 )
 
 type InputHandler struct {
-	positionSystem   *positionsys.System
-	animationSystem  *animationsys.System
+	physicsSystem    *physicssys.System
+	gameobjSystem    *gameobjsys.System
 	controlledEntity entity.ID
 }
 
@@ -27,25 +27,28 @@ func (h *InputHandler) HandleInputState(t common.Time, state inputState) {
 		accelAmt *= 2
 	}
 
+	var totalVelocity mgl32.Vec2
 	if state.states[StateUp] {
-		h.positionSystem.AddForce(h.controlledEntity, mgl32.Vec2{0.0, -accelAmt})
-		h.animationSystem.SetAnimation(h.controlledEntity, "walking-up", t)
+		totalVelocity = totalVelocity.Add(mgl32.Vec2{0.0, -accelAmt})
 	}
 
 	if state.states[StateDown] {
-		h.positionSystem.AddForce(h.controlledEntity, mgl32.Vec2{0.0, accelAmt})
-		h.animationSystem.SetAnimation(h.controlledEntity, "walking-down", t)
+		totalVelocity = totalVelocity.Add(mgl32.Vec2{0.0, accelAmt})
 	}
 
 	if state.states[StateLeft] {
-		h.positionSystem.AddForce(h.controlledEntity, mgl32.Vec2{accelAmt, 0.0})
-		h.animationSystem.SetAnimation(h.controlledEntity, "walking-left", t)
+		totalVelocity = totalVelocity.Add(mgl32.Vec2{accelAmt, 0.0})
 	}
 
 	if state.states[StateRight] {
-		h.positionSystem.AddForce(h.controlledEntity, mgl32.Vec2{-accelAmt, 0.0})
-		h.animationSystem.SetAnimation(h.controlledEntity, "walking-right", t)
+		totalVelocity = totalVelocity.Add(mgl32.Vec2{-accelAmt, 0.0})
 	}
+
+	h.physicsSystem.AddForce(h.controlledEntity, totalVelocity)
+
+	// if !state.states[StateUp] && !state.states[StateDown] && !state.states[StateLeft] && !state.states[StateRight] {
+	// 	h.physicsSystem.SetVelocity(h.controlledEntity, mgl32.Vec2{0, 0})
+	// }
 
 	for _, x := range state.actions {
 		switch x {

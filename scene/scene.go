@@ -3,7 +3,6 @@ package scene
 import (
 	"path"
 
-	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
 )
 
@@ -36,8 +35,4 @@ func (s *Scene) AssetPath(asset string) string {
 
 func (s *Scene) EntityManager() *entity.Manager {
 	return &s.entityManager
-}
-
-func (s *Scene) Update(t common.Time) {
-	s.entityManager.Update(t)
 }

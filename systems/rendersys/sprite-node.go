@@ -1,4 +1,4 @@
-package node
+package rendersys
 
 import (
 	_ "image/png"
@@ -8,7 +8,6 @@ import (
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/shader"
-	"github.com/brynbellomy/gl4-game/systems/rendersys"
 )
 
 type (
@@ -94,7 +93,7 @@ func (n *SpriteNode) SetTexture(tex uint32) {
 	n.texture = tex
 }
 
-func (n *SpriteNode) Render(c rendersys.RenderContext) {
+func (n *SpriteNode) Render(c RenderContext) {
 	gl.UseProgram(n.program)
 
 	trans := mgl32.Translate3D(n.position.X(), n.position.Y(), 0.0)
