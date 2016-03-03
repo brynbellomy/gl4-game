@@ -42,6 +42,11 @@ func (s *System) SetPos(eid entity.ID, pos mgl32.Vec2) {
 }
 
 func (s *System) Update(t common.Time) {
+	// no-op
+}
+
+func (s *System) WillJoinManager(em *entity.Manager) {
+	// no-op
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {

@@ -1,9 +1,8 @@
 package mainscene
 
 import (
-	"fmt"
-
 	"github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/brynbellomy/gl4-game/input"
 )
@@ -12,16 +11,14 @@ type (
 	InputMapper struct{}
 
 	inputState struct {
-		actions []CharacterInputAction
-		states  map[CharacterInputState]bool
+		actions   []ICharacterInputAction
+		states    map[CharacterInputState]bool
+		cursorPos mgl32.Vec2
 	}
 
-	CharacterInputAction int
-	CharacterInputState  int
-)
+	CharacterInputState int
 
-const (
-	ActionFireWeapon CharacterInputAction = iota
+	ICharacterInputAction interface{}
 )
 
 const (
@@ -34,15 +31,17 @@ const (
 
 func newInputState() inputState {
 	return inputState{
-		states:  map[CharacterInputState]bool{},
-		actions: []CharacterInputAction{},
+		states:    map[CharacterInputState]bool{},
+		actions:   []ICharacterInputAction{},
+		cursorPos: mgl32.Vec2{},
 	}
 }
 
 func (i inputState) Clone() inputState {
 	return inputState{
-		states:  i.states,
-		actions: []CharacterInputAction{},
+		states:    i.states,
+		actions:   []ICharacterInputAction{},
+		cursorPos: i.cursorPos,
 	}
 }
 
@@ -52,26 +51,29 @@ func (m *InputMapper) MapInputs(state inputState, events []input.IEvent) inputSt
 
 		case input.KeyEvent:
 			switch evt.Key {
-			case glfw.KeyUp:
+			case glfw.KeyW:
 				state.states[StateUp] = (evt.Action == glfw.Press || evt.Action == glfw.Repeat)
-			case glfw.KeyDown:
+			case glfw.KeyS:
 				state.states[StateDown] = (evt.Action == glfw.Press || evt.Action == glfw.Repeat)
-			case glfw.KeyLeft:
+			case glfw.KeyA:
 				state.states[StateLeft] = (evt.Action == glfw.Press || evt.Action == glfw.Repeat)
-			case glfw.KeyRight:
+			case glfw.KeyD:
 				state.states[StateRight] = (evt.Action == glfw.Press || evt.Action == glfw.Repeat)
 
 			case glfw.KeyLeftShift:
 				state.states[StateSprint] = (evt.Action == glfw.Press || evt.Action == glfw.Repeat)
-
-			case glfw.KeyZ:
-				if evt.Action == glfw.Press {
-					state.actions = append(state.actions, ActionFireWeapon)
-				}
 			}
 
 		case input.MouseEvent:
-			fmt.Printf("Mouse event: %+v\n", evt)
+			switch evt.MouseButton {
+			case glfw.MouseButton1:
+				if evt.Action == glfw.Press {
+					state.actions = append(state.actions, ActionFireWeapon{Target: state.cursorPos})
+				}
+			}
+
+		case input.CursorEvent:
+			state.cursorPos = evt.Pos
 
 		default:
 			panic("unknown input event type")
@@ -79,3 +81,9 @@ func (m *InputMapper) MapInputs(state inputState, events []input.IEvent) inputSt
 	}
 	return state
 }
+
+type (
+	ActionFireWeapon struct {
+		Target mgl32.Vec2
+	}
+)

@@ -2,6 +2,7 @@ package input
 
 import (
 	"github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 type (
@@ -16,5 +17,9 @@ type (
 		MouseButton glfw.MouseButton
 		Action      glfw.Action
 		Mods        glfw.ModifierKey
+	}
+
+	CursorEvent struct {
+		Pos mgl32.Vec2
 	}
 )

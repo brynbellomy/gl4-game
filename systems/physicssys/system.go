@@ -38,18 +38,29 @@ func (s *System) AddForce(eid entity.ID, f mgl32.Vec2) {
 }
 
 func (s *System) Update(t common.Time) {
+	if s.previousTime == 0 {
+		s.previousTime = t
+		return
+	}
+
 	elapsed := t - s.previousTime
 
 	for _, e := range s.entities {
 		accel := e.physicsCmpt.CurrentForces()
 		e.physicsCmpt.ResetForces()
 
-		accelScaled := accel.Mul(float32(elapsed.Seconds()))
+		vdelta := accel.Mul(float32(elapsed.Seconds()))
 
-		newvel := e.physicsCmpt.Velocity().Add(accelScaled)
+		newvel := e.physicsCmpt.Velocity().Add(vdelta)
 
 		// friction
 		newvel = newvel.Mul(0.95)
+
+		mag := newvel.Len()
+		maxvel := e.physicsCmpt.MaxVelocity()
+		if mag > 0 && maxvel < mag {
+			newvel = newvel.Normalize().Mul(maxvel)
+		}
 
 		e.physicsCmpt.SetVelocity(newvel)
 
@@ -60,15 +71,19 @@ func (s *System) Update(t common.Time) {
 	s.previousTime = t
 }
 
+func (s *System) WillJoinManager(em *entity.Manager) {
+	// no-op
+}
+
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {
 	var physicsCmpt *Component
 	var positionCmpt *positionsys.Component
 
 	for _, cmpt := range components {
-		if ac, is := cmpt.(*Component); is {
-			physicsCmpt = ac
-		} else if rc, is := cmpt.(*positionsys.Component); is {
-			positionCmpt = rc
+		if phc, is := cmpt.(*Component); is {
+			physicsCmpt = phc
+		} else if posc, is := cmpt.(*positionsys.Component); is {
+			positionCmpt = posc
 		}
 
 		if physicsCmpt != nil && positionCmpt != nil {

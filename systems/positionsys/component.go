@@ -25,7 +25,7 @@ type (
 	}
 )
 
-func NewComponent(pos mgl32.Vec2, size common.Size, z int) IComponent {
+func NewComponent(pos mgl32.Vec2, size common.Size, z int) *Component {
 	return &Component{pos: pos, size: size, zindex: z}
 }
 

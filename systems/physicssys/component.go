@@ -4,7 +4,8 @@ import "github.com/go-gl/mathgl/mgl32"
 
 type (
 	Component struct {
-		velocity mgl32.Vec2
+		velocity    mgl32.Vec2
+		maxVelocity float32
 		// acceleration mgl32.Vec2
 
 		totalCurrentForce mgl32.Vec2
@@ -12,8 +13,12 @@ type (
 	}
 )
 
-func NewComponent() *Component {
-	return &Component{}
+func NewComponent(velocity mgl32.Vec2, maxVelocity float32, totalCurrentForce mgl32.Vec2) *Component {
+	return &Component{
+		velocity:          velocity,
+		maxVelocity:       maxVelocity,
+		totalCurrentForce: totalCurrentForce,
+	}
 }
 
 func (c *Component) Velocity() mgl32.Vec2 {
@@ -22,6 +27,14 @@ func (c *Component) Velocity() mgl32.Vec2 {
 
 func (c *Component) SetVelocity(velocity mgl32.Vec2) {
 	c.velocity = velocity
+}
+
+func (c *Component) MaxVelocity() float32 {
+	return c.maxVelocity
+}
+
+func (c *Component) SetMaxVelocity(maxVelocity float32) {
+	c.maxVelocity = maxVelocity
 }
 
 func (c *Component) AddForce(f mgl32.Vec2) {

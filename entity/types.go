@@ -6,8 +6,9 @@ import (
 
 type (
 	ISystem interface {
-		Update(t common.Time)
+		WillJoinManager(em *Manager)
 		ComponentsWillJoin(eid ID, components []IComponent)
+		Update(t common.Time)
 	}
 
 	ID uint64

@@ -1,20 +1,21 @@
 package mainscene
 
 import (
-	"fmt"
-
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
 	"github.com/brynbellomy/gl4-game/systems/gameobjsys"
-	"github.com/brynbellomy/gl4-game/systems/physicssys"
+	"github.com/brynbellomy/gl4-game/systems/movesys"
+	"github.com/brynbellomy/gl4-game/systems/positionsys"
 )
 
 type InputHandler struct {
-	physicsSystem    *physicssys.System
+	moveSystem       *movesys.System
+	positionSystem   *positionsys.System
 	gameobjSystem    *gameobjsys.System
 	controlledEntity entity.ID
+	onFireWeapon     func(controlledEntity entity.ID, x ActionFireWeapon)
 }
 
 func (h *InputHandler) SetControlledEntity(eid entity.ID) {
@@ -27,33 +28,31 @@ func (h *InputHandler) HandleInputState(t common.Time, state inputState) {
 		accelAmt *= 2
 	}
 
-	var totalVelocity mgl32.Vec2
+	var totalAccel mgl32.Vec2
 	if state.states[StateUp] {
-		totalVelocity = totalVelocity.Add(mgl32.Vec2{0.0, -accelAmt})
+		totalAccel = totalAccel.Add(mgl32.Vec2{0.0, -accelAmt})
 	}
 
 	if state.states[StateDown] {
-		totalVelocity = totalVelocity.Add(mgl32.Vec2{0.0, accelAmt})
+		totalAccel = totalAccel.Add(mgl32.Vec2{0.0, accelAmt})
 	}
 
 	if state.states[StateLeft] {
-		totalVelocity = totalVelocity.Add(mgl32.Vec2{accelAmt, 0.0})
+		totalAccel = totalAccel.Add(mgl32.Vec2{accelAmt, 0.0})
 	}
 
 	if state.states[StateRight] {
-		totalVelocity = totalVelocity.Add(mgl32.Vec2{-accelAmt, 0.0})
+		totalAccel = totalAccel.Add(mgl32.Vec2{-accelAmt, 0.0})
 	}
 
-	h.physicsSystem.AddForce(h.controlledEntity, totalVelocity)
-
-	// if !state.states[StateUp] && !state.states[StateDown] && !state.states[StateLeft] && !state.states[StateRight] {
-	// 	h.physicsSystem.SetVelocity(h.controlledEntity, mgl32.Vec2{0, 0})
-	// }
+	h.moveSystem.SetMovementVector(h.controlledEntity, totalAccel)
 
 	for _, x := range state.actions {
-		switch x {
+		switch x := x.(type) {
 		case ActionFireWeapon:
-			fmt.Println("Fired weapon!")
+			h.onFireWeapon(h.controlledEntity, x)
+			// pos := h.positionSystem.GetPos(h.controlledEntity)
+			// fireball(assetRoot, pos, x.Target)
 		}
 	}
 }

@@ -53,6 +53,10 @@ func (s *System) Update(t common.Time) {
 	}
 }
 
+func (s *System) WillJoinManager(em *entity.Manager) {
+	// no-op
+}
+
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {
 	var gameobjCmpt *Component
 	var physicsCmpt *physicssys.Component

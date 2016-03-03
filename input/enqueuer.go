@@ -1,6 +1,9 @@
 package input
 
-import "github.com/go-gl/glfw/v3.1/glfw"
+import (
+	"github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/go-gl/mathgl/mgl32"
+)
 
 type (
 	Enqueuer struct {
@@ -19,6 +22,7 @@ func NewEnqueuer() *Enqueuer {
 func (h *Enqueuer) BecomeInputResponder(window *glfw.Window) {
 	window.SetKeyCallback(h.OnKey)
 	window.SetMouseButtonCallback(h.OnMouseButton)
+	window.SetCursorPosCallback(h.OnMouseMove)
 }
 
 func (h *Enqueuer) OnKey(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
@@ -27,6 +31,12 @@ func (h *Enqueuer) OnKey(w *glfw.Window, key glfw.Key, scancode int, action glfw
 
 func (h *Enqueuer) OnMouseButton(w *glfw.Window, button glfw.MouseButton, action glfw.Action, mod glfw.ModifierKey) {
 	h.queuedEvents = append(h.queuedEvents, MouseEvent{button, action, mod})
+}
+
+func (h *Enqueuer) OnMouseMove(w *glfw.Window, xpos float64, ypos float64) {
+	h.queuedEvents = append(h.queuedEvents, CursorEvent{
+		Pos: mgl32.Vec2{float32(xpos), float32(ypos)},
+	})
 }
 
 func (h *Enqueuer) FlushEvents() []IEvent {

@@ -74,12 +74,11 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 			panic("steering component requires position component")
 		}
 
-		aspect := entityAspect{
+		s.entities = append(s.entities, entityAspect{
 			positionCmpt: positionCmpt,
 			steeringCmpt: steeringCmpt,
-		}
+		})
 
-		s.entities = append(s.entities, aspect)
-		s.entityMap[eid] = &aspect
+		s.entityMap[eid] = &s.entities[len(s.entities)-1]
 	}
 }
