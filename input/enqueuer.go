@@ -2,7 +2,8 @@ package input
 
 import (
 	"github.com/go-gl/glfw/v3.1/glfw"
-	"github.com/go-gl/mathgl/mgl32"
+
+	"github.com/brynbellomy/gl4-game/common"
 )
 
 type (
@@ -35,7 +36,7 @@ func (h *Enqueuer) OnMouseButton(w *glfw.Window, button glfw.MouseButton, action
 
 func (h *Enqueuer) OnMouseMove(w *glfw.Window, xpos float64, ypos float64) {
 	h.queuedEvents = append(h.queuedEvents, CursorEvent{
-		Pos: mgl32.Vec2{float32(xpos), float32(ypos)},
+		Pos: common.WindowPos{xpos, ypos},
 	})
 }
 

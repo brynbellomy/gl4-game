@@ -57,10 +57,14 @@ func (s *System) Update(t common.Time) {
 			ent.physicsCmpt.SetVelocity(vel)
 			ent.moveCmpt.SetVector(ent.projectileCmpt.Heading())
 
+			// only stay in the Firing state for the first frame
+			ent.projectileCmpt.state = Flying
+
 		case Flying:
 			ent.moveCmpt.SetVector(ent.projectileCmpt.Heading())
 
 		case Impacting:
+			ent.physicsCmpt.SetVelocity(mgl32.Vec2{0, 0})
 		}
 	}
 }

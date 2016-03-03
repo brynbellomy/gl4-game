@@ -2,7 +2,8 @@ package input
 
 import (
 	"github.com/go-gl/glfw/v3.1/glfw"
-	"github.com/go-gl/mathgl/mgl32"
+
+	"github.com/brynbellomy/gl4-game/common"
 )
 
 type (
@@ -20,6 +21,6 @@ type (
 	}
 
 	CursorEvent struct {
-		Pos mgl32.Vec2
+		Pos common.WindowPos
 	}
 )

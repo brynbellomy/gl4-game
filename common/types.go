@@ -2,6 +2,16 @@ package common
 
 import "time"
 
+type WindowPos [2]float64
+
+func (p WindowPos) X() float64 {
+	return p[0]
+}
+
+func (p WindowPos) Y() float64 {
+	return p[1]
+}
+
 type Time int64
 
 func Now() Time {

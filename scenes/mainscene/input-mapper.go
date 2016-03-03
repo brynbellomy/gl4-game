@@ -2,8 +2,8 @@ package mainscene
 
 import (
 	"github.com/go-gl/glfw/v3.1/glfw"
-	"github.com/go-gl/mathgl/mgl32"
 
+	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/input"
 )
 
@@ -13,7 +13,7 @@ type (
 	inputState struct {
 		actions   []ICharacterInputAction
 		states    map[CharacterInputState]bool
-		cursorPos mgl32.Vec2
+		cursorPos common.WindowPos
 	}
 
 	CharacterInputState int
@@ -33,7 +33,7 @@ func newInputState() inputState {
 	return inputState{
 		states:    map[CharacterInputState]bool{},
 		actions:   []ICharacterInputAction{},
-		cursorPos: mgl32.Vec2{},
+		cursorPos: common.WindowPos{},
 	}
 }
 
@@ -68,7 +68,7 @@ func (m *InputMapper) MapInputs(state inputState, events []input.IEvent) inputSt
 			switch evt.MouseButton {
 			case glfw.MouseButton1:
 				if evt.Action == glfw.Press {
-					state.actions = append(state.actions, ActionFireWeapon{Target: state.cursorPos})
+					state.actions = append(state.actions, ActionFireWeapon{WindowPos: state.cursorPos})
 				}
 			}
 
@@ -84,6 +84,6 @@ func (m *InputMapper) MapInputs(state inputState, events []input.IEvent) inputSt
 
 type (
 	ActionFireWeapon struct {
-		Target mgl32.Vec2
+		WindowPos common.WindowPos
 	}
 )

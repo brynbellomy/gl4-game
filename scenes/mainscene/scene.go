@@ -19,9 +19,8 @@ import (
 
 type (
 	MainScene struct {
-		window                    *glfw.Window
-		projection                mgl32.Mat4
-		windowWidth, windowHeight int
+		window     *glfw.Window
+		projection mgl32.Mat4
 
 		assetRoot     string
 		entityManager entity.Manager
@@ -95,8 +94,6 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 
 func (s *MainScene) Prepare() error {
 	ww, wh := s.window.GetSize()
-	s.windowWidth = ww
-	s.windowHeight = wh
 
 	s.projection = mgl32.Perspective(mgl32.DegToRad(45.0), float32(ww)/float32(wh), 0.1, 10.0)
 	s.renderSystem.SetProjection(s.projection)
@@ -127,15 +124,6 @@ func (s *MainScene) Prepare() error {
 		s.entityManager.AddComponents(s.heroID, heroCmpts)
 	}
 
-	// {
-	// 	fireballCmpts, err := fireball(s.assetRoot, mgl32.Vec2{0, 0}, mgl32.Vec2{1, 1})
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	fireballID := s.entityManager.NewEntityID()
-	// 	s.entityManager.AddComponents(fireballID, fireballCmpts)
-	// }
-
 	s.inputQueue.BecomeInputResponder(s.window)
 	s.inputHandler.SetControlledEntity(s.heroID)
 
@@ -144,7 +132,7 @@ func (s *MainScene) Prepare() error {
 	return nil
 }
 
-func (s *MainScene) getWorldPos(windowPos mgl32.Vec2) (mgl32.Vec2, error) {
+func (s *MainScene) getWorldPos(windowPos common.WindowPos) (mgl32.Vec2, error) {
 	depthBuf := make([]float32, 1)
 	gl.ReadPixels(
 		int32(windowPos.X()),
@@ -157,17 +145,21 @@ func (s *MainScene) getWorldPos(windowPos mgl32.Vec2) (mgl32.Vec2, error) {
 	)
 
 	cameraPos := s.getCameraPos()
-	viewMatrix := mgl32.Ident4().Mul4(mgl32.Translate3D(cameraPos.X(), -cameraPos.Y(), 0))
 
-	flippedY := float32(s.windowHeight) - windowPos.Y()
+	// the model matrix of the world is always set to identity, so the "model * view" parameter is just the camera transform
+	modelview := mgl32.Translate3D(cameraPos.X(), cameraPos.Y(), 0)
+
+	windowWidth, windowHeight := s.window.GetSize()
+	flippedY := float64(windowHeight) - windowPos.Y()
+
 	worldPos, err := mgl32.UnProject(
-		mgl32.Vec3{windowPos.X(), flippedY, depthBuf[0]}, // win coords
-		viewMatrix,     // modelview
-		s.projection,   // projection
-		0,              // initialX
-		0,              // initialY
-		s.windowWidth,  // width
-		s.windowHeight, // height
+		mgl32.Vec3{float32(windowPos.X()), float32(flippedY), depthBuf[0]}, // win coords
+		modelview,    // modelview
+		s.projection, // projection
+		0,            // initialX
+		0,            // initialY
+		windowWidth,  // width
+		windowHeight, // height
 	)
 
 	if err != nil {
@@ -185,7 +177,7 @@ func (s *MainScene) getCameraPos() mgl32.Vec2 {
 }
 
 func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon) {
-	targetPos, err := s.getWorldPos(x.Target)
+	targetPos, err := s.getWorldPos(x.WindowPos)
 	if err != nil {
 		panic(err)
 	}
