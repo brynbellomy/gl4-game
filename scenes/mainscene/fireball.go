@@ -23,13 +23,13 @@ type FireballFactory struct {
 	fireballAtlas   *texture.Atlas
 }
 
-func NewFireballFactory(assetRoot string) *FireballFactory {
+func NewFireballFactory(assetRoot string) (*FireballFactory, error) {
 	f := &FireballFactory{
 		AssetRoot: assetRoot,
 	}
 
-	f.init()
-	return f
+	err := f.init()
+	return f, err
 }
 
 func (f *FireballFactory) init() error {

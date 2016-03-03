@@ -6,6 +6,7 @@ import (
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
 	"github.com/brynbellomy/gl4-game/systems/gameobjsys"
+	"github.com/brynbellomy/gl4-game/systems/inputsys"
 	"github.com/brynbellomy/gl4-game/systems/movesys"
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
 )
@@ -22,7 +23,9 @@ func (h *InputHandler) SetControlledEntity(eid entity.ID) {
 	h.controlledEntity = eid
 }
 
-func (h *InputHandler) HandleInputState(t common.Time, state inputState) {
+func (h *InputHandler) HandleInputState(t common.Time, st inputsys.IInputState) {
+	state := st.(inputState)
+
 	var accelAmt float32 = 1
 	if state.states[StateSprint] {
 		accelAmt *= 2
@@ -51,8 +54,6 @@ func (h *InputHandler) HandleInputState(t common.Time, state inputState) {
 		switch x := x.(type) {
 		case ActionFireWeapon:
 			h.onFireWeapon(h.controlledEntity, x)
-			// pos := h.positionSystem.GetPos(h.controlledEntity)
-			// fireball(assetRoot, pos, x.Target)
 		}
 	}
 }

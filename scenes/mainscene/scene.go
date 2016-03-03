@@ -7,9 +7,9 @@ import (
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
-	"github.com/brynbellomy/gl4-game/input"
 	"github.com/brynbellomy/gl4-game/systems/animationsys"
 	"github.com/brynbellomy/gl4-game/systems/gameobjsys"
+	"github.com/brynbellomy/gl4-game/systems/inputsys"
 	"github.com/brynbellomy/gl4-game/systems/movesys"
 	"github.com/brynbellomy/gl4-game/systems/physicssys"
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
@@ -28,10 +28,8 @@ type (
 		heroID   entity.ID
 		cameraID entity.ID
 
-		inputQueue   *input.Enqueuer
-		inputState   inputState
-		inputMapper  InputMapper
-		inputHandler InputHandler
+		inputSystem  *inputsys.System
+		inputHandler *InputHandler
 
 		positionSystem   *positionsys.System
 		physicsSystem    *physicssys.System
@@ -46,48 +44,59 @@ type (
 )
 
 func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
-	positionSystem := positionsys.New()
-	physicsSystem := physicssys.New()
-	renderSystem := rendersys.New()
-	animationSystem := animationsys.New()
-	gameobjSystem := gameobjsys.New()
-	moveSystem := movesys.New()
-	projectileSystem := projectilesys.New()
+	fireballFactory, err := NewFireballFactory(assetRoot)
+	if err != nil {
+		return nil, err
+	}
 
-	entityManager := entity.NewManager([]entity.ISystem{
-		positionSystem,
-		physicsSystem,
-		renderSystem,
-		animationSystem,
-		gameobjSystem,
-		moveSystem,
-		projectileSystem,
-	})
+	var (
+		positionSystem   = positionsys.New()
+		physicsSystem    = physicssys.New()
+		renderSystem     = rendersys.New()
+		animationSystem  = animationsys.New()
+		gameobjSystem    = gameobjsys.New()
+		moveSystem       = movesys.New()
+		projectileSystem = projectilesys.New()
 
-	mainScene := &MainScene{
-		window: window,
-
-		assetRoot:     assetRoot,
-		entityManager: entityManager,
-
-		positionSystem:   positionSystem,
-		physicsSystem:    physicsSystem,
-		renderSystem:     renderSystem,
-		animationSystem:  animationSystem,
-		gameobjSystem:    gameobjSystem,
-		moveSystem:       moveSystem,
-		projectileSystem: projectileSystem,
-
-		inputState: newInputState(),
-		inputHandler: InputHandler{
+		inputMapper  = &InputMapper{}
+		inputHandler = &InputHandler{
 			moveSystem:     moveSystem,
 			positionSystem: positionSystem,
 			gameobjSystem:  gameobjSystem,
-		},
-		inputQueue: input.NewEnqueuer(),
+		}
 
-		fireballFactory: NewFireballFactory(assetRoot),
-	}
+		inputSystem = inputsys.New(newInputState(), inputMapper, inputHandler)
+
+		entityManager = entity.NewManager([]entity.ISystem{
+			positionSystem,
+			physicsSystem,
+			renderSystem,
+			animationSystem,
+			gameobjSystem,
+			moveSystem,
+			projectileSystem,
+		})
+
+		mainScene = &MainScene{
+			window: window,
+
+			assetRoot:     assetRoot,
+			entityManager: entityManager,
+
+			positionSystem:   positionSystem,
+			physicsSystem:    physicsSystem,
+			renderSystem:     renderSystem,
+			animationSystem:  animationSystem,
+			gameobjSystem:    gameobjSystem,
+			moveSystem:       moveSystem,
+			projectileSystem: projectileSystem,
+
+			inputSystem:  inputSystem,
+			inputHandler: inputHandler,
+
+			fireballFactory: fireballFactory,
+		}
+	)
 
 	return mainScene, nil
 }
@@ -97,14 +106,6 @@ func (s *MainScene) Prepare() error {
 
 	s.projection = mgl32.Perspective(mgl32.DegToRad(45.0), float32(ww)/float32(wh), 0.1, 10.0)
 	s.renderSystem.SetProjection(s.projection)
-
-	{
-		s.cameraID = s.entityManager.NewEntityID()
-		s.entityManager.AddComponents(s.cameraID, []entity.IComponent{
-			positionsys.NewComponent(mgl32.Vec2{0, 0}, common.Size{0, 0}, 0),
-		})
-		s.renderSystem.SetCameraPos(mgl32.Vec2{0, 0})
-	}
 
 	{
 		bgCmpts, err := bg(s.assetRoot)
@@ -124,9 +125,10 @@ func (s *MainScene) Prepare() error {
 		s.entityManager.AddComponents(s.heroID, heroCmpts)
 	}
 
-	s.inputQueue.BecomeInputResponder(s.window)
-	s.inputHandler.SetControlledEntity(s.heroID)
+	s.cameraID = s.heroID
 
+	s.inputSystem.BecomeInputResponder(s.window)
+	s.inputSystem.SetControlledEntity(s.heroID)
 	s.inputHandler.onFireWeapon = s.onFireWeapon
 
 	return nil
@@ -150,7 +152,7 @@ func (s *MainScene) getWorldPos(windowPos common.WindowPos) (mgl32.Vec2, error) 
 	modelview := mgl32.Translate3D(cameraPos.X(), cameraPos.Y(), 0)
 
 	windowWidth, windowHeight := s.window.GetSize()
-	flippedY := float64(windowHeight) - windowPos.Y()
+	flippedY := float64(windowHeight) - windowPos.Y() // we have to flip the Y value because our coordinate system is oriented differently from OpenGL's
 
 	worldPos, err := mgl32.UnProject(
 		mgl32.Vec3{float32(windowPos.X()), float32(flippedY), depthBuf[0]}, // win coords
@@ -173,7 +175,7 @@ func (s *MainScene) getWorldPos(windowPos common.WindowPos) (mgl32.Vec2, error) 
 // @@TODO
 // @@TODO
 func (s *MainScene) getCameraPos() mgl32.Vec2 {
-	return s.positionSystem.GetPos(s.heroID)
+	return s.positionSystem.GetPos(s.cameraID)
 }
 
 func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon) {
@@ -198,8 +200,9 @@ func (s *MainScene) Update() {
 	t := common.Now()
 
 	// update input
-	s.inputState = s.inputMapper.MapInputs(s.inputState.Clone(), s.inputQueue.FlushEvents())
-	s.inputHandler.HandleInputState(t, s.inputState)
+	// s.inputState = s.inputMapper.MapInputs(s.inputState.Clone(), s.inputQueue.FlushEvents())
+	// s.inputHandler.HandleInputState(t, s.inputState)
+	s.inputSystem.Update(t)
 
 	s.gameobjSystem.Update(t)
 	s.projectileSystem.Update(t)
@@ -208,6 +211,6 @@ func (s *MainScene) Update() {
 	s.positionSystem.Update(t)
 	s.animationSystem.Update(t)
 
-	s.renderSystem.SetCameraPos(s.positionSystem.GetPos(s.heroID))
+	s.renderSystem.SetCameraPos(s.getCameraPos())
 	s.renderSystem.Update(t)
 }

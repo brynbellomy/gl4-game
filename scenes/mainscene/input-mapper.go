@@ -5,16 +5,11 @@ import (
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/input"
+	"github.com/brynbellomy/gl4-game/systems/inputsys"
 )
 
 type (
 	InputMapper struct{}
-
-	inputState struct {
-		actions   []ICharacterInputAction
-		states    map[CharacterInputState]bool
-		cursorPos common.WindowPos
-	}
 
 	CharacterInputState int
 
@@ -29,23 +24,9 @@ const (
 	StateSprint
 )
 
-func newInputState() inputState {
-	return inputState{
-		states:    map[CharacterInputState]bool{},
-		actions:   []ICharacterInputAction{},
-		cursorPos: common.WindowPos{},
-	}
-}
+func (m *InputMapper) MapInputs(st inputsys.IInputState, events []input.IEvent) inputsys.IInputState {
+	state := st.(inputState)
 
-func (i inputState) Clone() inputState {
-	return inputState{
-		states:    i.states,
-		actions:   []ICharacterInputAction{},
-		cursorPos: i.cursorPos,
-	}
-}
-
-func (m *InputMapper) MapInputs(state inputState, events []input.IEvent) inputState {
 	for _, evt := range events {
 		switch evt := evt.(type) {
 
