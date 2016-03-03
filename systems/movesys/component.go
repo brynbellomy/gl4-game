@@ -25,6 +25,10 @@ func (c *Component) SetVector(vec mgl32.Vec2) {
 	c.vec = vec
 }
 
+func (c *Component) ResetVector() {
+	c.vec = mgl32.Vec2{0, 0}
+}
+
 // const (
 // 	ConstantMovement MovementKind = iota
 // 	GoalMovement

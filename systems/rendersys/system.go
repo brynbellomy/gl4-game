@@ -33,8 +33,12 @@ func (s *System) SetProjection(p mgl32.Mat4) {
 	s.projection = p
 }
 
-func (s *System) SetCameraPos(pos mgl32.Vec2) {
-	s.camera = mgl32.LookAtV(mgl32.Vec3{pos.X(), pos.Y(), 3}, mgl32.Vec3{pos.X(), pos.Y(), 0}, mgl32.Vec3{0, -1, 0})
+// func (s *System) SetCameraPos(pos mgl32.Vec2) {
+// 	s.camera = mgl32.LookAtV(mgl32.Vec3{pos.X(), pos.Y(), 3}, mgl32.Vec3{pos.X(), pos.Y(), 0}, mgl32.Vec3{0, -1, 0})
+// }
+
+func (s *System) SetCamera(camera mgl32.Mat4) {
+	s.camera = camera
 }
 
 func (s *System) Update(t common.Time) {

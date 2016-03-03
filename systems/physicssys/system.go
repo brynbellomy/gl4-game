@@ -1,6 +1,8 @@
 package physicssys
 
 import (
+	"fmt"
+
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/brynbellomy/gl4-game/common"
@@ -45,6 +47,9 @@ func (s *System) Update(t common.Time) {
 
 	elapsed := t - s.previousTime
 
+	//
+	// apply acceleration / velocity
+	//
 	for _, e := range s.entities {
 		accel := e.physicsCmpt.CurrentForces()
 		e.physicsCmpt.ResetForces()
@@ -54,7 +59,7 @@ func (s *System) Update(t common.Time) {
 		newvel := e.physicsCmpt.Velocity().Add(vdelta)
 
 		// friction
-		newvel = newvel.Mul(0.95)
+		// newvel = newvel.Mul(0.95)
 
 		mag := newvel.Len()
 		maxvel := e.physicsCmpt.MaxVelocity()
@@ -64,11 +69,83 @@ func (s *System) Update(t common.Time) {
 
 		e.physicsCmpt.SetVelocity(newvel)
 
+		// add the instantaneous velocity for the movement system
+		newvel = newvel.Add(e.physicsCmpt.InstantaneousVelocity())
+
 		newpos := e.positionCmpt.Pos().Add(newvel.Mul(float32(elapsed.Seconds())))
 		e.positionCmpt.SetPos(newpos)
 	}
 
+	//
+	// check for collisions
+	//
+	for _, entA := range s.entities {
+		entitiesToCheck := s.entities // @@TODO
+
+		for _, entB := range entitiesToCheck {
+			if entA == entB {
+				continue
+			}
+			did := s.checkCollision(entA, entB)
+			if did {
+				fmt.Println("collision")
+			}
+		}
+	}
+
 	s.previousTime = t
+}
+
+func getNormal(a, b mgl32.Vec2) mgl32.Vec2 {
+	return mgl32.Vec2{
+		-(a.Y() - b.Y()),
+		a.X() - b.X(),
+	}
+}
+
+func getMinMaxProjectedPoints(boundingBox BoundingBox, pos mgl32.Vec2, normal mgl32.Vec2) (float32, float32) {
+	min := boundingBox[0].Add(pos).Dot(normal)
+	max := min
+	for j := 0; j < len(boundingBox); j++ {
+		x := boundingBox[j].Add(pos).Dot(normal)
+		if x > max {
+			max = x
+		} else if x < min {
+			min = x
+		}
+	}
+
+	return min, max
+}
+
+func (s *System) checkCollision(entA, entB entityAspect) bool {
+	var minA, maxA, minB, maxB float32
+
+	cmptA := entA.physicsCmpt
+	cmptB := entB.physicsCmpt
+	for i := 0; i < len(cmptA.boundingBox)-1; i++ {
+		normal := getNormal(cmptA.boundingBox[i+1], cmptA.boundingBox[i])
+		minA, maxA = getMinMaxProjectedPoints(cmptA.boundingBox, entA.positionCmpt.Pos(), normal)
+		minB, maxB = getMinMaxProjectedPoints(cmptB.boundingBox, entB.positionCmpt.Pos(), normal)
+
+		if maxB < minA || maxA < minB {
+			// no collision between these shapes
+			return false
+		}
+	}
+
+	for i := 0; i < len(cmptB.boundingBox)-1; i++ {
+		normal := getNormal(cmptB.boundingBox[i+1], cmptB.boundingBox[i])
+		minA, maxA = getMinMaxProjectedPoints(cmptA.boundingBox, entA.positionCmpt.Pos(), normal)
+		minB, maxB = getMinMaxProjectedPoints(cmptB.boundingBox, entB.positionCmpt.Pos(), normal)
+
+		if maxB < minA || maxA < minB {
+			// no collision between these shapes
+			return false
+		}
+	}
+
+	return true
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {

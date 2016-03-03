@@ -51,12 +51,19 @@ func (f *FireballFactory) init() error {
 }
 
 func (f *FireballFactory) Build(pos mgl32.Vec2, vec mgl32.Vec2) ([]entity.IComponent, error) {
+	boundingBox := physicssys.BoundingBox{
+		{-0.1, -0.07},
+		{-0.1, 0.07},
+		{0.1, 0.07},
+		{0.1, -0.07},
+	}
+
 	return []entity.IComponent{
-		positionsys.NewComponent(pos, common.Size{0.2, 0.2}, 2),
-		physicssys.NewComponent(mgl32.Vec2{}, 1, mgl32.Vec2{}),
+		positionsys.NewComponent(pos, common.Size{0.2, 0.14}, 2),
+		physicssys.NewComponent(mgl32.Vec2{}, 8, mgl32.Vec2{}, boundingBox),
 		rendersys.NewComponent(rendersys.NewSpriteNode(), f.fireballTexture),
 		animationsys.NewComponent(f.fireballAtlas, "flying", 0, 6),
 		movesys.NewComponent(mgl32.Vec2{0, 0}),
-		projectilesys.NewComponent(vec, 2, projectilesys.Firing),
+		projectilesys.NewComponent(vec, 0.01, 10, projectilesys.Firing),
 	}, nil
 }

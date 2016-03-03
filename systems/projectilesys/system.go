@@ -53,15 +53,20 @@ func (s *System) Update(t common.Time) {
 	for _, ent := range s.entities {
 		switch ent.projectileCmpt.state {
 		case Firing:
-			vel := ent.projectileCmpt.Heading().Normalize().Mul(ent.projectileCmpt.exitVelocity)
+			headingNorm := ent.projectileCmpt.Heading().Normalize()
+			vel := headingNorm.Mul(ent.projectileCmpt.exitVelocity)
 			ent.physicsCmpt.SetVelocity(vel)
-			ent.moveCmpt.SetVector(ent.projectileCmpt.Heading())
+
+			// ent.moveCmpt.SetVector(headingNorm.Mul(ent.projectileCmpt.acceleration))
+			ent.physicsCmpt.AddForce(headingNorm.Mul(ent.projectileCmpt.acceleration))
 
 			// only stay in the Firing state for the first frame
 			ent.projectileCmpt.state = Flying
 
 		case Flying:
-			ent.moveCmpt.SetVector(ent.projectileCmpt.Heading())
+			force := ent.projectileCmpt.Heading().Normalize().Mul(ent.projectileCmpt.acceleration)
+			// ent.moveCmpt.SetVector(force)
+			ent.physicsCmpt.AddForce(force)
 
 		case Impacting:
 			ent.physicsCmpt.SetVelocity(mgl32.Vec2{0, 0})

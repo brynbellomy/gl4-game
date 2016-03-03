@@ -72,9 +72,16 @@ func hero(assetRoot string) ([]entity.IComponent, error) {
 		},
 	}
 
+	boundingBox := physicssys.BoundingBox{
+		{-0.1, -0.2},
+		{-0.1, 0.2},
+		{0.1, 0.2},
+		{0.1, -0.2},
+	}
+
 	return []entity.IComponent{
 		positionsys.NewComponent(mgl32.Vec2{0, 0}, common.Size{0.2, 0.4}, 1),
-		physicssys.NewComponent(mgl32.Vec2{}, 20, mgl32.Vec2{}),
+		physicssys.NewComponent(mgl32.Vec2{}, 20, mgl32.Vec2{}, boundingBox),
 		rendersys.NewComponent(rendersys.NewSpriteNode(), heroTexture),
 		animationsys.NewComponent(heroAtlas, "walking-down", 0, 2),
 		gameobjsys.NewComponent(gameobjsys.Action(0), gameobjsys.Down, animationMap),

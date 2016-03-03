@@ -125,6 +125,15 @@ func (s *MainScene) Prepare() error {
 		s.entityManager.AddComponents(s.heroID, heroCmpts)
 	}
 
+	{
+		skeletonCmpts, err := skeleton(s.assetRoot)
+		if err != nil {
+			return err
+		}
+		skeletonID := s.entityManager.NewEntityID()
+		s.entityManager.AddComponents(skeletonID, skeletonCmpts)
+	}
+
 	s.cameraID = s.heroID
 
 	s.inputSystem.BecomeInputResponder(s.window)
@@ -146,10 +155,8 @@ func (s *MainScene) getWorldPos(windowPos common.WindowPos) (mgl32.Vec2, error) 
 		gl.Ptr(depthBuf),
 	)
 
-	cameraPos := s.getCameraPos()
-
 	// the model matrix of the world is always set to identity, so the "model * view" parameter is just the camera transform
-	modelview := mgl32.Translate3D(cameraPos.X(), cameraPos.Y(), 0)
+	modelview := s.getCamera()
 
 	windowWidth, windowHeight := s.window.GetSize()
 	flippedY := float64(windowHeight) - windowPos.Y() // we have to flip the Y value because our coordinate system is oriented differently from OpenGL's
@@ -178,6 +185,11 @@ func (s *MainScene) getCameraPos() mgl32.Vec2 {
 	return s.positionSystem.GetPos(s.cameraID)
 }
 
+func (s *MainScene) getCamera() mgl32.Mat4 {
+	pos := s.getCameraPos()
+	return mgl32.LookAtV(mgl32.Vec3{pos.X(), pos.Y(), 3}, mgl32.Vec3{pos.X(), pos.Y(), 0}, mgl32.Vec3{0, -1, 0})
+}
+
 func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon) {
 	targetPos, err := s.getWorldPos(x.WindowPos)
 	if err != nil {
@@ -185,7 +197,7 @@ func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon)
 	}
 
 	pos := s.positionSystem.GetPos(controlledEntity)
-	vec := pos.Sub(targetPos)
+	vec := targetPos.Sub(pos)
 
 	fireball, err := s.fireballFactory.Build(pos, vec)
 	if err != nil {
@@ -199,9 +211,6 @@ func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon)
 func (s *MainScene) Update() {
 	t := common.Now()
 
-	// update input
-	// s.inputState = s.inputMapper.MapInputs(s.inputState.Clone(), s.inputQueue.FlushEvents())
-	// s.inputHandler.HandleInputState(t, s.inputState)
 	s.inputSystem.Update(t)
 
 	s.gameobjSystem.Update(t)
@@ -211,6 +220,6 @@ func (s *MainScene) Update() {
 	s.positionSystem.Update(t)
 	s.animationSystem.Update(t)
 
-	s.renderSystem.SetCameraPos(s.getCameraPos())
+	s.renderSystem.SetCamera(s.getCamera())
 	s.renderSystem.Update(t)
 }

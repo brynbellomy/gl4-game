@@ -32,7 +32,7 @@ func New() *System {
 func (s *System) Update(t common.Time) {
 	for _, e := range s.entities {
 		cmpt := e.gameobjCmpt
-		vel := e.physicsCmpt.Velocity()
+		vel := e.physicsCmpt.Velocity().Add(e.physicsCmpt.InstantaneousVelocity())
 
 		if vel.Len() > 0.01 {
 			radians := math.Atan2(float64(vel.Y()), float64(vel.X()))

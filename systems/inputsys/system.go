@@ -47,6 +47,14 @@ func (s *System) SetControlledEntity(eid entity.ID) {
 	s.inputHandler.SetControlledEntity(eid)
 }
 
+func (s *System) SetInputMapper(mapper IInputMapper) {
+	s.inputMapper = mapper
+}
+
+func (s *System) SetInputHandler(handler IInputHandler) {
+	s.inputHandler = handler
+}
+
 func (s *System) Update(t common.Time) {
 	s.inputState = s.inputMapper.MapInputs(s.inputState.Clone(), s.inputQueue.FlushEvents())
 	s.inputHandler.HandleInputState(t, s.inputState)
