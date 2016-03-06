@@ -1,8 +1,6 @@
 package physicssys
 
 import (
-	"fmt"
-
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/brynbellomy/gl4-game/common"
@@ -16,9 +14,11 @@ type (
 		entityMap map[entity.ID]*entityAspect
 
 		previousTime common.Time
+		onCollision  func(c Collision)
 	}
 
 	entityAspect struct {
+		id           entity.ID
 		physicsCmpt  *Component
 		positionCmpt *positionsys.Component
 	}
@@ -29,6 +29,10 @@ func New() *System {
 		entities:  make([]entityAspect, 0),
 		entityMap: make(map[entity.ID]*entityAspect),
 	}
+}
+
+func (s *System) OnCollision(fn func(c Collision)) {
+	s.onCollision = fn
 }
 
 func (s *System) AddForce(eid entity.ID, f mgl32.Vec2) {
@@ -74,13 +78,17 @@ func (s *System) Update(t common.Time) {
 
 		newpos := e.positionCmpt.Pos().Add(newvel.Mul(float32(elapsed.Seconds())))
 		e.positionCmpt.SetPos(newpos)
+
+		// take this opportunity to (unrelatedly) clear the collisions slice before step 2 (viz., check for collisions)
+		e.physicsCmpt.collisions = []Collision{}
 	}
 
 	//
 	// check for collisions
 	//
-	for _, entA := range s.entities {
-		entitiesToCheck := s.entities // @@TODO
+	for i, entA := range s.entities {
+		// @@TODO
+		entitiesToCheck := s.entities[i+1:]
 
 		for _, entB := range entitiesToCheck {
 			if entA == entB {
@@ -88,7 +96,10 @@ func (s *System) Update(t common.Time) {
 			}
 			did := s.checkCollision(entA, entB)
 			if did {
-				fmt.Println("collision")
+				collision := Collision{entA.id, entB.id}
+				entA.physicsCmpt.collisions = append(entA.physicsCmpt.collisions, collision)
+				entB.physicsCmpt.collisions = append(entB.physicsCmpt.collisions, collision)
+				s.onCollision(collision)
 			}
 		}
 	}
@@ -123,6 +134,11 @@ func (s *System) checkCollision(entA, entB entityAspect) bool {
 
 	cmptA := entA.physicsCmpt
 	cmptB := entB.physicsCmpt
+
+	if cmptA.collisionMask&cmptB.collidesWith == 0 && cmptB.collisionMask&cmptA.collidesWith == 0 {
+		return false
+	}
+
 	for i := 0; i < len(cmptA.boundingBox)-1; i++ {
 		normal := getNormal(cmptA.boundingBox[i+1], cmptA.boundingBox[i])
 		minA, maxA = getMinMaxProjectedPoints(cmptA.boundingBox, entA.positionCmpt.Pos(), normal)
@@ -174,10 +190,36 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 		}
 
 		s.entities = append(s.entities, entityAspect{
+			id:           eid,
 			physicsCmpt:  physicsCmpt,
 			positionCmpt: positionCmpt,
 		})
 
 		s.entityMap[eid] = &s.entities[len(s.entities)-1]
+	}
+}
+
+func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
+	remove := false
+	for _, cmpt := range components {
+		switch cmpt.(type) {
+		case *Component, *positionsys.Component:
+			remove = true
+			break
+		}
+	}
+
+	if remove {
+		removedIdx := -1
+		for i := range s.entities {
+			if s.entities[i].id == eid {
+				removedIdx = i
+				break
+			}
+		}
+		if removedIdx >= 0 {
+			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
+		}
+		delete(s.entityMap, eid)
 	}
 }

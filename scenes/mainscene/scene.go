@@ -23,7 +23,7 @@ type (
 		projection mgl32.Mat4
 
 		assetRoot     string
-		entityManager entity.Manager
+		entityManager *entity.Manager
 
 		heroID   entity.ID
 		cameraID entity.ID
@@ -140,6 +140,10 @@ func (s *MainScene) Prepare() error {
 	s.inputSystem.SetControlledEntity(s.heroID)
 	s.inputHandler.onFireWeapon = s.onFireWeapon
 
+	s.physicsSystem.OnCollision(func(c physicssys.Collision) {
+		// fmt.Printf("collision ~> %+v\n", c)
+	})
+
 	return nil
 }
 
@@ -222,4 +226,6 @@ func (s *MainScene) Update() {
 
 	s.renderSystem.SetCamera(s.getCamera())
 	s.renderSystem.Update(t)
+
+	s.entityManager.CullEntities()
 }

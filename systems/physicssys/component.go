@@ -11,15 +11,21 @@ type (
 		instantaneousVelocity mgl32.Vec2
 
 		boundingBox BoundingBox
+		collisions  []Collision
+
+		collisionMask, collidesWith uint64
 	}
 )
 
-func NewComponent(velocity mgl32.Vec2, maxVelocity float32, totalCurrentForce mgl32.Vec2, boundingBox BoundingBox) *Component {
+func NewComponent(velocity mgl32.Vec2, maxVelocity float32, totalCurrentForce mgl32.Vec2, boundingBox BoundingBox, collisionMask uint64, collidesWith uint64) *Component {
 	return &Component{
 		velocity:          velocity,
 		maxVelocity:       maxVelocity,
 		totalCurrentForce: totalCurrentForce,
 		boundingBox:       boundingBox,
+		collisionMask:     collisionMask,
+		collidesWith:      collidesWith,
+		collisions:        []Collision{},
 	}
 }
 
@@ -57,4 +63,8 @@ func (c *Component) InstantaneousVelocity() mgl32.Vec2 {
 
 func (c *Component) ResetForces() {
 	c.totalCurrentForce = mgl32.Vec2{}
+}
+
+func (c *Component) Collisions() []Collision {
+	return c.collisions
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/brynbellomy/gl4-game/systems/physicssys"
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
 	"github.com/brynbellomy/gl4-game/systems/rendersys"
-	"github.com/brynbellomy/gl4-game/texture"
+	"github.com/brynbellomy/gl4-game/systems/rendersys/texture"
 )
 
 func hero(assetRoot string) ([]entity.IComponent, error) {
@@ -80,10 +80,10 @@ func hero(assetRoot string) ([]entity.IComponent, error) {
 	}
 
 	return []entity.IComponent{
-		positionsys.NewComponent(mgl32.Vec2{0, 0}, common.Size{0.2, 0.4}, 1),
-		physicssys.NewComponent(mgl32.Vec2{}, 20, mgl32.Vec2{}, boundingBox),
-		rendersys.NewComponent(rendersys.NewSpriteNode(), heroTexture),
-		animationsys.NewComponent(heroAtlas, "walking-down", 0, 2),
+		positionsys.NewComponent(mgl32.Vec2{0, 0}, common.Size{0.2, 0.4}, 1, 0),
+		physicssys.NewComponent(mgl32.Vec2{}, 20, mgl32.Vec2{}, boundingBox, uint64(HeroCollider), 0),
+		rendersys.NewComponent(rendersys.NewDefaultSpriteNode(), heroTexture),
+		animationsys.NewComponent(heroAtlas, "walking-down", false, 0, 2),
 		gameobjsys.NewComponent(gameobjsys.Action(0), gameobjsys.Down, animationMap),
 		movesys.NewComponent(mgl32.Vec2{0, 0}),
 	}, nil

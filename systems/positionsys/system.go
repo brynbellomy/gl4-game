@@ -14,6 +14,7 @@ type (
 	}
 
 	entityAspect struct {
+		id           entity.ID
 		positionCmpt *Component
 	}
 )
@@ -60,8 +61,33 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 	}
 
 	if positionCmpt != nil {
-		aspect := entityAspect{positionCmpt: positionCmpt}
+		aspect := entityAspect{id: eid, positionCmpt: positionCmpt}
 		s.entities = append(s.entities, aspect)
 		s.entityMap[eid] = &s.entities[len(s.entities)-1]
+	}
+}
+
+func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
+	remove := false
+	for _, cmpt := range components {
+		switch cmpt.(type) {
+		case *Component:
+			remove = true
+			break
+		}
+	}
+
+	if remove {
+		removedIdx := -1
+		for i := range s.entities {
+			if s.entities[i].id == eid {
+				removedIdx = i
+				break
+			}
+		}
+		if removedIdx >= 0 {
+			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
+		}
+		delete(s.entityMap, eid)
 	}
 }

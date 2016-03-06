@@ -2,7 +2,7 @@ package animationsys
 
 import (
 	"github.com/brynbellomy/gl4-game/common"
-	"github.com/brynbellomy/gl4-game/texture"
+	"github.com/brynbellomy/gl4-game/systems/rendersys/texture"
 )
 
 type (
@@ -16,10 +16,10 @@ type (
 	}
 )
 
-func NewComponent(atlas *texture.Atlas, animation string, currentIndex int, fps int) *Component {
+func NewComponent(atlas *texture.Atlas, animation string, isAnimating bool, currentIndex int, fps int) *Component {
 	return &Component{
 		atlas:          atlas,
-		isAnimating:    false,
+		isAnimating:    isAnimating,
 		animation:      animation,
 		currentIndex:   currentIndex,
 		animationStart: common.Time(0),

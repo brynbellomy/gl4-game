@@ -12,6 +12,7 @@ type (
 
 		SetPos(p mgl32.Vec2)
 		SetSize(s common.Size)
+		SetRotation(r float32)
 		SetTexture(tex uint32)
 	}
 )

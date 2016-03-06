@@ -1,6 +1,8 @@
 package projectilesys
 
 import (
+	"math"
+
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/brynbellomy/gl4-game/common"
@@ -18,6 +20,7 @@ type (
 	}
 
 	entityAspect struct {
+		id             entity.ID
 		projectileCmpt *Component
 		positionCmpt   *positionsys.Component
 		moveCmpt       *movesys.Component
@@ -50,14 +53,18 @@ func (s *System) SetHeading(eid entity.ID, pos mgl32.Vec2) {
 }
 
 func (s *System) Update(t common.Time) {
+	// check for collisions first
+	for _, ent := range s.entities {
+		if len(ent.physicsCmpt.Collisions()) > 0 {
+			ent.projectileCmpt.state = Impacting
+		}
+	}
+
 	for _, ent := range s.entities {
 		switch ent.projectileCmpt.state {
 		case Firing:
 			headingNorm := ent.projectileCmpt.Heading().Normalize()
-			vel := headingNorm.Mul(ent.projectileCmpt.exitVelocity)
-			ent.physicsCmpt.SetVelocity(vel)
-
-			// ent.moveCmpt.SetVector(headingNorm.Mul(ent.projectileCmpt.acceleration))
+			ent.physicsCmpt.SetVelocity(headingNorm.Mul(ent.projectileCmpt.exitVelocity))
 			ent.physicsCmpt.AddForce(headingNorm.Mul(ent.projectileCmpt.acceleration))
 
 			// only stay in the Firing state for the first frame
@@ -65,11 +72,17 @@ func (s *System) Update(t common.Time) {
 
 		case Flying:
 			force := ent.projectileCmpt.Heading().Normalize().Mul(ent.projectileCmpt.acceleration)
-			// ent.moveCmpt.SetVector(force)
 			ent.physicsCmpt.AddForce(force)
+
+			v := ent.physicsCmpt.Velocity()
+			theta := float32(math.Atan2(float64(v.Y()), float64(v.X())))
+			ent.positionCmpt.SetRotation(theta)
 
 		case Impacting:
 			ent.physicsCmpt.SetVelocity(mgl32.Vec2{0, 0})
+			if ent.projectileCmpt.removeOnContact {
+				s.entityManager.RemoveEntity(ent.id)
+			}
 		}
 	}
 }
@@ -110,6 +123,7 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 		}
 
 		s.entities = append(s.entities, entityAspect{
+			id:             eid,
 			projectileCmpt: projectileCmpt,
 			positionCmpt:   positionCmpt,
 			moveCmpt:       moveCmpt,
@@ -117,5 +131,30 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 		})
 
 		s.entityMap[eid] = &s.entities[len(s.entities)-1]
+	}
+}
+
+func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
+	remove := false
+	for _, cmpt := range components {
+		switch cmpt.(type) {
+		case *Component, *movesys.Component, *positionsys.Component, *physicssys.Component:
+			remove = true
+			break
+		}
+	}
+
+	if remove {
+		removedIdx := -1
+		for i := range s.entities {
+			if s.entities[i].id == eid {
+				removedIdx = i
+				break
+			}
+		}
+		if removedIdx >= 0 {
+			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
+		}
+		delete(s.entityMap, eid)
 	}
 }

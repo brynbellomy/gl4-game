@@ -18,6 +18,7 @@ type (
 	}
 
 	entityAspect struct {
+		id           entity.ID
 		renderCmpt   *Component
 		positionCmpt *positionsys.Component
 	}
@@ -32,10 +33,6 @@ func New() *System {
 func (s *System) SetProjection(p mgl32.Mat4) {
 	s.projection = p
 }
-
-// func (s *System) SetCameraPos(pos mgl32.Vec2) {
-// 	s.camera = mgl32.LookAtV(mgl32.Vec3{pos.X(), pos.Y(), 3}, mgl32.Vec3{pos.X(), pos.Y(), 0}, mgl32.Vec3{0, -1, 0})
-// }
 
 func (s *System) SetCamera(camera mgl32.Mat4) {
 	s.camera = camera
@@ -55,6 +52,7 @@ func (s *System) Update(t common.Time) {
 
 		rnode.SetPos(ent.positionCmpt.Pos())
 		rnode.SetSize(ent.positionCmpt.Size())
+		rnode.SetRotation(ent.positionCmpt.Rotation())
 		rnode.SetTexture(ent.renderCmpt.Texture())
 
 		rnode.Render(renderCtx)
@@ -87,11 +85,36 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 		}
 
 		aspect := entityAspect{
+			id:           eid,
 			positionCmpt: positionCmpt,
 			renderCmpt:   renderCmpt,
 		}
 
 		s.entities = append(s.entities, aspect)
+	}
+}
+
+func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
+	remove := false
+	for _, cmpt := range components {
+		switch cmpt.(type) {
+		case *Component, *positionsys.Component:
+			remove = true
+			break
+		}
+	}
+
+	if remove {
+		removedIdx := -1
+		for i := range s.entities {
+			if s.entities[i].id == eid {
+				removedIdx = i
+				break
+			}
+		}
+		if removedIdx >= 0 {
+			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
+		}
 	}
 }
 

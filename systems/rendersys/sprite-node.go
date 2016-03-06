@@ -7,7 +7,6 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/brynbellomy/gl4-game/common"
-	"github.com/brynbellomy/gl4-game/shader"
 )
 
 type (
@@ -22,12 +21,17 @@ type (
 		texture  uint32 // texture id
 		size     common.Size
 		position mgl32.Vec2
+		rotation float32
 	}
 )
 
-func NewSpriteNode() *SpriteNode {
+func NewDefaultSpriteNode() *SpriteNode {
+	return NewSpriteNode(defaultVertexShader, defaultFragmentShader)
+}
+
+func NewSpriteNode(vertexShader, fragmentShader string) *SpriteNode {
 	// Configure the vertex and fragment shaders
-	program, err := shader.NewProgram(vertexShader, fragmentShader)
+	program, err := NewProgram(vertexShader, fragmentShader)
 	if err != nil {
 		panic(err)
 	}
@@ -88,6 +92,10 @@ func (n *SpriteNode) SetSize(size common.Size) {
 	n.size = size
 }
 
+func (n *SpriteNode) SetRotation(rotation float32) {
+	n.rotation = rotation
+}
+
 func (n *SpriteNode) SetTexture(tex uint32) {
 	n.texture = tex
 }
@@ -96,8 +104,10 @@ func (n *SpriteNode) Render(c RenderContext) {
 	gl.UseProgram(n.program)
 
 	trans := mgl32.Translate3D(n.position.X(), n.position.Y(), 0.0)
+	rotate := mgl32.Rotate3DZ(n.rotation).Mat4()
 	scale := mgl32.Scale3D(n.size.Width(), n.size.Height(), 1.0)
-	model := trans.Mul4(scale)
+
+	model := trans.Mul4(rotate).Mul4(scale)
 
 	gl.UniformMatrix4fv(n.uModel, 1, false, &model[0])
 	gl.UniformMatrix4fv(n.uCamera, 1, false, &c.Camera[0])
@@ -111,7 +121,7 @@ func (n *SpriteNode) Render(c RenderContext) {
 	gl.DrawArrays(gl.TRIANGLES, 0, 6*2*3)
 }
 
-var vertexShader = `
+var defaultVertexShader = `
 #version 410
 
 uniform mat4 projection;
@@ -129,7 +139,7 @@ void main() {
 }
 ` + "\x00"
 
-var fragmentShader = `
+var defaultFragmentShader = `
 #version 410
 
 uniform sampler2D tex;

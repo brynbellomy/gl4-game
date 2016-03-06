@@ -4,7 +4,6 @@ import (
 	"github.com/go-gl/glfw/v3.1/glfw"
 
 	"github.com/brynbellomy/gl4-game/common"
-	"github.com/brynbellomy/gl4-game/input"
 	"github.com/brynbellomy/gl4-game/systems/inputsys"
 )
 
@@ -24,13 +23,13 @@ const (
 	StateSprint
 )
 
-func (m *InputMapper) MapInputs(st inputsys.IInputState, events []input.IEvent) inputsys.IInputState {
+func (m *InputMapper) MapInputs(st inputsys.IInputState, events []inputsys.IEvent) inputsys.IInputState {
 	state := st.(inputState)
 
 	for _, evt := range events {
 		switch evt := evt.(type) {
 
-		case input.KeyEvent:
+		case inputsys.KeyEvent:
 			switch evt.Key {
 			case glfw.KeyW:
 				state.states[StateUp] = (evt.Action == glfw.Press || evt.Action == glfw.Repeat)
@@ -45,7 +44,7 @@ func (m *InputMapper) MapInputs(st inputsys.IInputState, events []input.IEvent) 
 				state.states[StateSprint] = (evt.Action == glfw.Press || evt.Action == glfw.Repeat)
 			}
 
-		case input.MouseEvent:
+		case inputsys.MouseEvent:
 			switch evt.MouseButton {
 			case glfw.MouseButton1:
 				if evt.Action == glfw.Press {
@@ -53,7 +52,7 @@ func (m *InputMapper) MapInputs(st inputsys.IInputState, events []input.IEvent) 
 				}
 			}
 
-		case input.CursorEvent:
+		case inputsys.CursorEvent:
 			state.cursorPos = evt.Pos
 
 		default:

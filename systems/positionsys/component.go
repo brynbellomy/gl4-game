@@ -8,25 +8,15 @@ import (
 
 type (
 	Component struct {
-		pos    mgl32.Vec2
-		size   common.Size
-		zindex int
-	}
-
-	IComponent interface {
-		Pos() mgl32.Vec2
-		SetPos(pos mgl32.Vec2)
-
-		Size() common.Size
-		SetSize(size common.Size)
-
-		ZIndex() int
-		SetZIndex(z int)
+		pos      mgl32.Vec2
+		size     common.Size
+		rotation float32
+		zindex   int
 	}
 )
 
-func NewComponent(pos mgl32.Vec2, size common.Size, z int) *Component {
-	return &Component{pos: pos, size: size, zindex: z}
+func NewComponent(pos mgl32.Vec2, size common.Size, z int, rotation float32) *Component {
+	return &Component{pos: pos, size: size, zindex: z, rotation: rotation}
 }
 
 func (c *Component) Pos() mgl32.Vec2 {
@@ -35,6 +25,14 @@ func (c *Component) Pos() mgl32.Vec2 {
 
 func (c *Component) SetPos(pos mgl32.Vec2) {
 	c.pos = pos
+}
+
+func (c *Component) Rotation() float32 {
+	return c.rotation
+}
+
+func (c *Component) SetRotation(rotation float32) {
+	c.rotation = rotation
 }
 
 func (c *Component) Size() common.Size {

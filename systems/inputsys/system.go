@@ -5,19 +5,18 @@ import (
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
-	"github.com/brynbellomy/gl4-game/input"
 )
 
 type (
 	System struct {
-		inputQueue   *input.Enqueuer
+		inputQueue   *Enqueuer
 		inputState   IInputState
 		inputMapper  IInputMapper
 		inputHandler IInputHandler
 	}
 
 	IInputMapper interface {
-		MapInputs(state IInputState, events []input.IEvent) IInputState
+		MapInputs(state IInputState, events []IEvent) IInputState
 	}
 
 	IInputState interface {
@@ -32,7 +31,7 @@ type (
 
 func New(initialState IInputState, inputMapper IInputMapper, inputHandler IInputHandler) *System {
 	return &System{
-		inputQueue:   input.NewEnqueuer(),
+		inputQueue:   NewEnqueuer(),
 		inputState:   initialState,
 		inputMapper:  inputMapper,
 		inputHandler: inputHandler,

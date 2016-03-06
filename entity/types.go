@@ -8,6 +8,7 @@ type (
 	ISystem interface {
 		WillJoinManager(em *Manager)
 		ComponentsWillJoin(eid ID, components []IComponent)
+		ComponentsWillLeave(eid ID, components []IComponent)
 		Update(t common.Time)
 	}
 

@@ -4,10 +4,11 @@ import "github.com/go-gl/mathgl/mgl32"
 
 type (
 	Component struct {
-		heading      mgl32.Vec2
-		exitVelocity float32
-		acceleration float32
-		state        ProjectileState
+		heading         mgl32.Vec2
+		exitVelocity    float32
+		acceleration    float32
+		state           ProjectileState
+		removeOnContact bool
 	}
 
 	ProjectileState int
@@ -19,8 +20,8 @@ const (
 	Impacting
 )
 
-func NewComponent(heading mgl32.Vec2, exitVelocity float32, acceleration float32, state ProjectileState) *Component {
-	return &Component{heading: heading, exitVelocity: exitVelocity, acceleration: acceleration, state: state}
+func NewComponent(heading mgl32.Vec2, exitVelocity float32, acceleration float32, state ProjectileState, removeOnContact bool) *Component {
+	return &Component{heading: heading, exitVelocity: exitVelocity, acceleration: acceleration, state: state, removeOnContact: removeOnContact}
 }
 
 func (c *Component) Heading() mgl32.Vec2 {
