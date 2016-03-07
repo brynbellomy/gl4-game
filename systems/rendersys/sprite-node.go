@@ -1,22 +1,49 @@
 package rendersys
 
 import (
+	"errors"
 	_ "image/png"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/brynbellomy/gl4-game/common"
+	"github.com/brynbellomy/gl4-game/systems/rendersys/shader"
 )
 
 type (
+	SpriteNodeFactory struct {
+		shaderProgramCache *shader.ProgramCache
+	}
+)
+
+func (f *SpriteNodeFactory) NodeFromConfig(config map[string]interface{}) (INode, error) {
+	vertex, exists := config["vertex-shader"].(string)
+	if !exists {
+		return nil, errors.New("missing required key 'vertex-shader' (or wrong type)")
+	}
+
+	fragment, exists := config["fragment-shader"].(string)
+	if !exists {
+		return nil, errors.New("missing required key 'fragment-shader' (or wrong type)")
+	}
+
+	program, err := f.shaderProgramCache.LoadProgram(vertex, fragment)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSpriteNode(program)
+}
+
+type (
 	SpriteNode struct {
-		program     uint32 // shader program
-		vao         uint32 // vertex array object
-		uCamera     int32  // camera uniform
-		uModel      int32  // model uniform
-		uProjection int32  // texture uniform
-		uTexture    int32  // texture uniform
+		program     shader.Program // shader program
+		vao         uint32         // vertex array object
+		uCamera     int32          // camera uniform
+		uModel      int32          // model uniform
+		uProjection int32          // texture uniform
+		uTexture    int32          // texture uniform
 
 		texture  uint32 // texture id
 		size     common.Size
@@ -25,32 +52,21 @@ type (
 	}
 )
 
-func NewDefaultSpriteNode() *SpriteNode {
-	return NewSpriteNode(defaultVertexShader, defaultFragmentShader)
-}
-
-func NewSpriteNode(vertexShader, fragmentShader string) *SpriteNode {
-	// Configure the vertex and fragment shaders
-	program, err := NewProgram(vertexShader, fragmentShader)
-	if err != nil {
-		panic(err)
-	}
-
+func NewSpriteNode(p shader.Program) (*SpriteNode, error) {
+	program := uint32(p)
 	gl.UseProgram(program)
 
-	defaultProjection := mgl32.Ident4()
 	projectionUniform := gl.GetUniformLocation(program, gl.Str("projection\x00"))
-	gl.UniformMatrix4fv(projectionUniform, 1, false, &defaultProjection[0])
-
-	defaultCamera := mgl32.Ident4()
 	cameraUniform := gl.GetUniformLocation(program, gl.Str("camera\x00"))
-	gl.UniformMatrix4fv(cameraUniform, 1, false, &defaultCamera[0])
-
-	defaultModel := mgl32.Ident4()
 	modelUniform := gl.GetUniformLocation(program, gl.Str("model\x00"))
-	gl.UniformMatrix4fv(modelUniform, 1, false, &defaultModel[0])
-
 	textureUniform := gl.GetUniformLocation(program, gl.Str("tex\x00"))
+
+	defaultProjection := mgl32.Ident4()
+	gl.UniformMatrix4fv(projectionUniform, 1, false, &defaultProjection[0])
+	defaultCamera := mgl32.Ident4()
+	gl.UniformMatrix4fv(cameraUniform, 1, false, &defaultCamera[0])
+	defaultModel := mgl32.Ident4()
+	gl.UniformMatrix4fv(modelUniform, 1, false, &defaultModel[0])
 	gl.Uniform1i(textureUniform, 0)
 
 	gl.BindFragDataLocation(program, 0, gl.Str("outputColor\x00"))
@@ -76,12 +92,12 @@ func NewSpriteNode(vertexShader, fragmentShader string) *SpriteNode {
 	gl.VertexAttribPointer(texCoordAttrib, 2, gl.FLOAT, false, 5*4, gl.PtrOffset(3*4))
 
 	return &SpriteNode{
-		program:  program,
+		program:  p,
 		vao:      vao,
 		uCamera:  cameraUniform,
 		uModel:   modelUniform,
 		uTexture: textureUniform,
-	}
+	}, nil
 }
 
 func (n *SpriteNode) SetPos(pos mgl32.Vec2) {
@@ -100,8 +116,12 @@ func (n *SpriteNode) SetTexture(tex uint32) {
 	n.texture = tex
 }
 
+func (n *SpriteNode) SetShaderProgram(p shader.Program) {
+	n.program = p
+}
+
 func (n *SpriteNode) Render(c RenderContext) {
-	gl.UseProgram(n.program)
+	gl.UseProgram(uint32(n.program))
 
 	trans := mgl32.Translate3D(n.position.X(), n.position.Y(), 0.0)
 	rotate := mgl32.Rotate3DZ(n.rotation).Mat4()
@@ -120,35 +140,3 @@ func (n *SpriteNode) Render(c RenderContext) {
 
 	gl.DrawArrays(gl.TRIANGLES, 0, 6*2*3)
 }
-
-var defaultVertexShader = `
-#version 410
-
-uniform mat4 projection;
-uniform mat4 camera;
-uniform mat4 model;
-
-in vec3 vert;
-in vec2 vertTexCoord;
-
-out vec2 fragTexCoord;
-
-void main() {
-    fragTexCoord = vertTexCoord;
-    gl_Position = projection * camera * model * vec4(vert, 1);
-}
-` + "\x00"
-
-var defaultFragmentShader = `
-#version 410
-
-uniform sampler2D tex;
-
-in vec2 fragTexCoord;
-
-out vec4 outputColor;
-
-void main() {
-    outputColor = texture(tex, fragTexCoord);
-}
-` + "\x00"

@@ -8,13 +8,17 @@ import (
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
+	"github.com/brynbellomy/gl4-game/systems/rendersys/shader"
 )
 
 type (
 	System struct {
 		entities   []entityAspect
+		entityMap  map[entity.ID]*entityAspect
 		projection mgl32.Mat4
 		camera     mgl32.Mat4
+
+		shaderProgramCache *shader.ProgramCache
 	}
 
 	entityAspect struct {
@@ -24,9 +28,11 @@ type (
 	}
 )
 
-func New() *System {
+func New(shaderProgramCache *shader.ProgramCache) *System {
 	return &System{
-		entities: []entityAspect{},
+		entities:           []entityAspect{},
+		entityMap:          map[entity.ID]*entityAspect{},
+		shaderProgramCache: shaderProgramCache,
 	}
 }
 
@@ -44,23 +50,30 @@ func (s *System) Update(t common.Time) {
 		Camera:     s.camera,
 	}
 
-	// sort entities by z-index every time entity/component list changes
-	sort.Sort(sortableEntities(s.entities))
+	for _, ent := range s.entities {
+		if !ent.renderCmpt.shaderProgramLoaded {
+			program, err := s.shaderProgramCache.LoadProgram(ent.renderCmpt.vertexShaderFile, ent.renderCmpt.fragmentShaderFile)
+			if err != nil {
+				panic(err.Error())
+			}
+			ent.renderCmpt.SetShaderProgram(program)
+			ent.renderCmpt.shaderProgramLoaded = true
+		}
+	}
 
 	for _, ent := range s.entities {
 		rnode := ent.renderCmpt.renderNode
-
-		rnode.SetPos(ent.positionCmpt.Pos())
-		rnode.SetSize(ent.positionCmpt.Size())
-		rnode.SetRotation(ent.positionCmpt.Rotation())
+		rnode.SetPos(ent.positionCmpt.GetPos())
+		rnode.SetSize(ent.positionCmpt.GetSize())
+		rnode.SetRotation(ent.positionCmpt.GetRotation())
 		rnode.SetTexture(ent.renderCmpt.Texture())
-
+		rnode.SetShaderProgram(ent.renderCmpt.ShaderProgram())
 		rnode.Render(renderCtx)
 	}
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	// no-op
+	em.RegisterComponentType("render", &Component{}, nil)
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {
@@ -84,14 +97,17 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 			panic("render component requires position component")
 		}
 
-		aspect := entityAspect{
+		s.entities = append(s.entities, entityAspect{
 			id:           eid,
 			positionCmpt: positionCmpt,
 			renderCmpt:   renderCmpt,
-		}
+		})
 
-		s.entities = append(s.entities, aspect)
+		s.entityMap[eid] = &s.entities[len(s.entities)-1]
 	}
+
+	// sort entities by z-index every time entity/component list changes
+	sort.Sort(sortableEntities(s.entities))
 }
 
 func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
@@ -115,7 +131,11 @@ func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.ICompone
 		if removedIdx >= 0 {
 			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
 		}
+		delete(s.entityMap, eid)
 	}
+
+	// sort entities by z-index every time entity/component list changes
+	sort.Sort(sortableEntities(s.entities))
 }
 
 type sortableEntities []entityAspect
@@ -125,15 +145,15 @@ func (s sortableEntities) Len() int {
 }
 
 func (s sortableEntities) Less(i, j int) bool {
-	z1 := s[i].positionCmpt.ZIndex()
-	z2 := s[j].positionCmpt.ZIndex()
+	z1 := s[i].positionCmpt.GetZIndex()
+	z2 := s[j].positionCmpt.GetZIndex()
 	if z1 < z2 {
 		return true
 	} else if z1 > z2 {
 		return false
 	} else {
 		// defer to y coordinate in the scene if the z-indices are the same
-		return s[i].positionCmpt.Pos().Y() < s[j].positionCmpt.Pos().Y()
+		return s[i].positionCmpt.GetPos().Y() < s[j].positionCmpt.GetPos().Y()
 	}
 }
 

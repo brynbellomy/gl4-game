@@ -28,7 +28,7 @@ func New() *System {
 
 func (s *System) GetPos(eid entity.ID) mgl32.Vec2 {
 	if e, exists := s.entityMap[eid]; exists {
-		return e.positionCmpt.Pos()
+		return e.positionCmpt.GetPos()
 	} else {
 		panic("entity does not exist")
 	}

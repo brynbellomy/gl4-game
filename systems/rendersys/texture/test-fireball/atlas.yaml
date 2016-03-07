@@ -1,0 +1,8 @@
+---
+name: test-fireball
+animations:
+    flying:
+        - flying-001.png
+        - flying-002.png
+        - flying-003.png
+        - flying-004.png

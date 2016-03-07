@@ -33,20 +33,20 @@ func New() *System {
 func (s *System) Update(t common.Time) {
 	for _, e := range s.entities {
 		cmpt := e.gameobjCmpt
-		vel := e.physicsCmpt.Velocity().Add(e.physicsCmpt.InstantaneousVelocity())
+		vel := e.physicsCmpt.GetVelocity().Add(e.physicsCmpt.GetInstantaneousVelocity())
 
 		if vel.Len() > 0.01 {
 			radians := math.Atan2(float64(vel.Y()), float64(vel.X()))
 
-			cmpt.direction = DirectionFromRadians(radians)
+			cmpt.Direction = DirectionFromRadians(radians)
 			e.animationCmpt.SetIsAnimating(true)
 
 		} else {
 			e.animationCmpt.SetIsAnimating(false)
 		}
 
-		if action, exists := cmpt.animations[cmpt.action]; exists {
-			anim := action[cmpt.direction]
+		if action, exists := cmpt.Animations[cmpt.Action]; exists {
+			anim := action[cmpt.Direction]
 			if anim != "" {
 				e.animationCmpt.SetAnimation(anim)
 			}

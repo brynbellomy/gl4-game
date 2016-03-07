@@ -60,13 +60,13 @@ func (s *System) Update(t common.Time) {
 
 		vdelta := accel.Mul(float32(elapsed.Seconds()))
 
-		newvel := e.physicsCmpt.Velocity().Add(vdelta)
+		newvel := e.physicsCmpt.GetVelocity().Add(vdelta)
 
 		// friction
 		// newvel = newvel.Mul(0.95)
 
 		mag := newvel.Len()
-		maxvel := e.physicsCmpt.MaxVelocity()
+		maxvel := e.physicsCmpt.GetMaxVelocity()
 		if mag > 0 && maxvel < mag {
 			newvel = newvel.Normalize().Mul(maxvel)
 		}
@@ -74,13 +74,13 @@ func (s *System) Update(t common.Time) {
 		e.physicsCmpt.SetVelocity(newvel)
 
 		// add the instantaneous velocity for the movement system
-		newvel = newvel.Add(e.physicsCmpt.InstantaneousVelocity())
+		newvel = newvel.Add(e.physicsCmpt.GetInstantaneousVelocity())
 
-		newpos := e.positionCmpt.Pos().Add(newvel.Mul(float32(elapsed.Seconds())))
+		newpos := e.positionCmpt.GetPos().Add(newvel.Mul(float32(elapsed.Seconds())))
 		e.positionCmpt.SetPos(newpos)
 
 		// take this opportunity to (unrelatedly) clear the collisions slice before step 2 (viz., check for collisions)
-		e.physicsCmpt.collisions = []Collision{}
+		e.physicsCmpt.ResetCollisions()
 	}
 
 	//
@@ -96,10 +96,10 @@ func (s *System) Update(t common.Time) {
 			}
 			did := s.checkCollision(entA, entB)
 			if did {
-				collision := Collision{entA.id, entB.id}
-				entA.physicsCmpt.collisions = append(entA.physicsCmpt.collisions, collision)
-				entB.physicsCmpt.collisions = append(entB.physicsCmpt.collisions, collision)
-				s.onCollision(collision)
+				c := Collision{entA.id, entB.id}
+				entA.physicsCmpt.AddCollision(c)
+				entB.physicsCmpt.AddCollision(c)
+				s.onCollision(c)
 			}
 		}
 	}
@@ -135,14 +135,14 @@ func (s *System) checkCollision(entA, entB entityAspect) bool {
 	cmptA := entA.physicsCmpt
 	cmptB := entB.physicsCmpt
 
-	if cmptA.collisionMask&cmptB.collidesWith == 0 && cmptB.collisionMask&cmptA.collidesWith == 0 {
+	if cmptA.CollisionMask&cmptB.CollidesWith == 0 && cmptB.CollisionMask&cmptA.CollidesWith == 0 {
 		return false
 	}
 
-	for i := 0; i < len(cmptA.boundingBox)-1; i++ {
-		normal := getNormal(cmptA.boundingBox[i+1], cmptA.boundingBox[i])
-		minA, maxA = getMinMaxProjectedPoints(cmptA.boundingBox, entA.positionCmpt.Pos(), normal)
-		minB, maxB = getMinMaxProjectedPoints(cmptB.boundingBox, entB.positionCmpt.Pos(), normal)
+	for i := 0; i < len(cmptA.GetBoundingBox())-1; i++ {
+		normal := getNormal(cmptA.GetBoundingBox()[i+1], cmptA.GetBoundingBox()[i])
+		minA, maxA = getMinMaxProjectedPoints(cmptA.GetBoundingBox(), entA.positionCmpt.GetPos(), normal)
+		minB, maxB = getMinMaxProjectedPoints(cmptB.GetBoundingBox(), entB.positionCmpt.GetPos(), normal)
 
 		if maxB < minA || maxA < minB {
 			// no collision between these shapes
@@ -150,10 +150,10 @@ func (s *System) checkCollision(entA, entB entityAspect) bool {
 		}
 	}
 
-	for i := 0; i < len(cmptB.boundingBox)-1; i++ {
-		normal := getNormal(cmptB.boundingBox[i+1], cmptB.boundingBox[i])
-		minA, maxA = getMinMaxProjectedPoints(cmptA.boundingBox, entA.positionCmpt.Pos(), normal)
-		minB, maxB = getMinMaxProjectedPoints(cmptB.boundingBox, entB.positionCmpt.Pos(), normal)
+	for i := 0; i < len(cmptB.GetBoundingBox())-1; i++ {
+		normal := getNormal(cmptB.GetBoundingBox()[i+1], cmptB.GetBoundingBox()[i])
+		minA, maxA = getMinMaxProjectedPoints(cmptA.GetBoundingBox(), entA.positionCmpt.GetPos(), normal)
+		minB, maxB = getMinMaxProjectedPoints(cmptB.GetBoundingBox(), entB.positionCmpt.GetPos(), normal)
 
 		if maxB < minA || maxA < minB {
 			// no collision between these shapes

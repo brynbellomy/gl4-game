@@ -1,40 +1,37 @@
 package animationsys
 
-import (
-	"github.com/brynbellomy/gl4-game/common"
-	"github.com/brynbellomy/gl4-game/systems/rendersys/texture"
-)
+import "github.com/brynbellomy/gl4-game/common"
 
 type (
 	Component struct {
-		atlas          *texture.Atlas
-		isAnimating    bool
-		animation      string
-		currentIndex   int
-		animationStart common.Time
-		fps            int
+		AtlasName      string      `config:"atlasName"`
+		Animation      string      `config:"animation"`
+		IsAnimating    bool        `config:"isAnimating"`
+		CurrentIndex   int         `config:"currentIndex"`
+		AnimationStart common.Time `config:"animationStart"`
+		FPS            int         `config:"fps"`
 	}
 )
 
-func NewComponent(atlas *texture.Atlas, animation string, isAnimating bool, currentIndex int, fps int) *Component {
+func NewComponent(atlasName string, animation string, isAnimating bool, currentIndex int, fps int) *Component {
 	return &Component{
-		atlas:          atlas,
-		isAnimating:    isAnimating,
-		animation:      animation,
-		currentIndex:   currentIndex,
-		animationStart: common.Time(0),
-		fps:            fps,
+		AtlasName:      atlasName,
+		IsAnimating:    isAnimating,
+		Animation:      animation,
+		CurrentIndex:   currentIndex,
+		AnimationStart: common.Time(0),
+		FPS:            fps,
 	}
 }
 
 func (c *Component) SetFPS(fps int) {
-	c.fps = fps
+	c.FPS = fps
 }
 
 func (c *Component) SetAnimation(animation string) {
-	c.animation = animation
+	c.Animation = animation
 }
 
 func (c *Component) SetIsAnimating(is bool) {
-	c.isAnimating = is
+	c.IsAnimating = is
 }

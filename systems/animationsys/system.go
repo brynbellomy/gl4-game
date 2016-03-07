@@ -6,12 +6,14 @@ import (
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
 	"github.com/brynbellomy/gl4-game/systems/rendersys"
+	"github.com/brynbellomy/gl4-game/systems/rendersys/texture"
 )
 
 type (
 	System struct {
-		entities  []entityAspect
-		entityMap map[entity.ID]*entityAspect
+		entities   []entityAspect
+		entityMap  map[entity.ID]*entityAspect
+		atlasCache *texture.AtlasCache
 	}
 
 	entityAspect struct {
@@ -21,16 +23,17 @@ type (
 	}
 )
 
-func New() *System {
+func New(atlasCache *texture.AtlasCache) *System {
 	return &System{
-		entities:  make([]entityAspect, 0),
-		entityMap: make(map[entity.ID]*entityAspect),
+		entities:   []entityAspect{},
+		entityMap:  map[entity.ID]*entityAspect{},
+		atlasCache: atlasCache,
 	}
 }
 
 func (s *System) GetAnimation(eid entity.ID) string {
 	if e, exists := s.entityMap[eid]; exists {
-		return e.animationCmpt.animation
+		return e.animationCmpt.Animation
 	} else {
 		panic("entity does not exist")
 	}
@@ -38,8 +41,8 @@ func (s *System) GetAnimation(eid entity.ID) string {
 
 func (s *System) SetAnimation(eid entity.ID, animation string, animationStart common.Time) {
 	if e, exists := s.entityMap[eid]; exists {
-		e.animationCmpt.animation = animation
-		e.animationCmpt.isAnimating = true
+		e.animationCmpt.Animation = animation
+		e.animationCmpt.IsAnimating = true
 
 	} else {
 		panic("entity does not exist")
@@ -48,7 +51,7 @@ func (s *System) SetAnimation(eid entity.ID, animation string, animationStart co
 
 func (s *System) StopAnimating(eid entity.ID) {
 	if e, exists := s.entityMap[eid]; exists {
-		e.animationCmpt.isAnimating = false
+		e.animationCmpt.IsAnimating = false
 
 	} else {
 		panic("entity does not exist")
@@ -59,29 +62,34 @@ func (s *System) Update(t common.Time) {
 	for _, e := range s.entities {
 		cmpt := e.animationCmpt
 
-		if !cmpt.isAnimating {
+		if !cmpt.IsAnimating {
 			continue
 		}
 
-		textures := cmpt.atlas.Animation(cmpt.animation)
+		atlas, err := s.atlasCache.Load(cmpt.AtlasName)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		textures := atlas.Animation(cmpt.Animation)
 		if len(textures) <= 0 {
 			continue
 		}
 
-		elapsedNano := t - cmpt.animationStart
-		totalFrames := int64(math.Floor(elapsedNano.Seconds() * float64(cmpt.fps)))
+		elapsedNano := t - cmpt.AnimationStart
+		totalFrames := int64(math.Floor(elapsedNano.Seconds() * float64(cmpt.FPS)))
 		newIndex := int(totalFrames % int64(len(textures)))
 
-		if cmpt.currentIndex == 0 || newIndex != cmpt.currentIndex {
-			cmpt.currentIndex = newIndex
-			tex := textures[cmpt.currentIndex]
+		if cmpt.CurrentIndex == 0 || newIndex != cmpt.CurrentIndex {
+			cmpt.CurrentIndex = newIndex
+			tex := textures[cmpt.CurrentIndex]
 			e.renderCmpt.SetTexture(tex)
 		}
 	}
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	// no-op
+	em.RegisterComponentType("animation", &Component{}, nil)
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {

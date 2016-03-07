@@ -6,30 +6,22 @@ import (
 
 type (
 	Component struct {
-		// kind MovementKind
-		vec mgl32.Vec2
+		Vec mgl32.Vec2 `config:"vector"`
 	}
-
-	// MovementKind int
 )
 
 func NewComponent(vec mgl32.Vec2) *Component {
-	return &Component{vec: vec}
+	return &Component{Vec: vec}
 }
 
 func (c *Component) Vector() mgl32.Vec2 {
-	return c.vec
+	return c.Vec
 }
 
 func (c *Component) SetVector(vec mgl32.Vec2) {
-	c.vec = vec
+	c.Vec = vec
 }
 
 func (c *Component) ResetVector() {
-	c.vec = mgl32.Vec2{0, 0}
+	c.Vec = mgl32.Vec2{0, 0}
 }
-
-// const (
-// 	ConstantMovement MovementKind = iota
-// 	GoalMovement
-// )

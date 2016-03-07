@@ -1,28 +1,48 @@
-package rendersys
+package shader
 
 import (
 	"fmt"
 	_ "image/png"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 )
 
-func NewProgram(vertexShaderSource, fragmentShaderSource string) (uint32, error) {
-	vertexShader, err := compileShader(vertexShaderSource, gl.VERTEX_SHADER)
+type (
+	Shader  uint32
+	Program uint32
+
+	ShaderType uint32
+)
+
+const (
+	VertexShader   ShaderType = gl.VERTEX_SHADER
+	FragmentShader ShaderType = gl.FRAGMENT_SHADER
+)
+
+func NewShader(file string, shaderType ShaderType) (Shader, error) {
+	f, err := os.Open(file)
 	if err != nil {
 		return 0, err
 	}
 
-	fragmentShader, err := compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER)
+	bytes, err := ioutil.ReadAll(f)
 	if err != nil {
 		return 0, err
 	}
 
+	bytes = append(bytes, '\x00')
+
+	return compileShader(string(bytes)+"", shaderType)
+}
+
+func NewProgram(vertexShader, fragmentShader Shader) (Program, error) {
 	program := gl.CreateProgram()
 
-	gl.AttachShader(program, vertexShader)
-	gl.AttachShader(program, fragmentShader)
+	gl.AttachShader(program, uint32(vertexShader))
+	gl.AttachShader(program, uint32(fragmentShader))
 	gl.LinkProgram(program)
 
 	var status int32
@@ -37,17 +57,18 @@ func NewProgram(vertexShaderSource, fragmentShaderSource string) (uint32, error)
 		return 0, fmt.Errorf("failed to link program: %v", log)
 	}
 
-	gl.DeleteShader(vertexShader)
-	gl.DeleteShader(fragmentShader)
+	gl.DeleteShader(uint32(vertexShader))
+	gl.DeleteShader(uint32(fragmentShader))
 
-	return program, nil
+	return Program(program), nil
 }
 
-func compileShader(source string, shaderType uint32) (uint32, error) {
-	shader := gl.CreateShader(shaderType)
+func compileShader(source string, shaderType ShaderType) (Shader, error) {
+	shader := gl.CreateShader(uint32(shaderType))
 
-	csource := gl.Str(source)
-	gl.ShaderSource(shader, 1, &csource, nil)
+	csource, freeCsource := gl.Strs(source)
+	gl.ShaderSource(shader, 1, csource, nil)
+	freeCsource()
 	gl.CompileShader(shader)
 
 	var status int32
@@ -62,5 +83,5 @@ func compileShader(source string, shaderType uint32) (uint32, error) {
 		return 0, fmt.Errorf("failed to compile %v: %v", source, log)
 	}
 
-	return shader, nil
+	return Shader(shader), nil
 }

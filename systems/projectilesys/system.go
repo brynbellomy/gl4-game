@@ -38,7 +38,7 @@ func New() *System {
 
 func (s *System) GetHeading(eid entity.ID) mgl32.Vec2 {
 	if e, exists := s.entityMap[eid]; exists {
-		return e.projectileCmpt.Heading()
+		return e.projectileCmpt.GetHeading()
 	} else {
 		panic("entity does not exist")
 	}
@@ -55,32 +55,32 @@ func (s *System) SetHeading(eid entity.ID, pos mgl32.Vec2) {
 func (s *System) Update(t common.Time) {
 	// check for collisions first
 	for _, ent := range s.entities {
-		if len(ent.physicsCmpt.Collisions()) > 0 {
-			ent.projectileCmpt.state = Impacting
+		if len(ent.physicsCmpt.GetCollisions()) > 0 {
+			ent.projectileCmpt.State = Impacting
 		}
 	}
 
 	for _, ent := range s.entities {
-		switch ent.projectileCmpt.state {
+		switch ent.projectileCmpt.State {
 		case Firing:
-			headingNorm := ent.projectileCmpt.Heading().Normalize()
-			ent.physicsCmpt.SetVelocity(headingNorm.Mul(ent.projectileCmpt.exitVelocity))
-			ent.physicsCmpt.AddForce(headingNorm.Mul(ent.projectileCmpt.acceleration))
+			headingNorm := ent.projectileCmpt.GetHeading().Normalize()
+			ent.physicsCmpt.SetVelocity(headingNorm.Mul(ent.projectileCmpt.ExitVelocity))
+			ent.physicsCmpt.AddForce(headingNorm.Mul(ent.projectileCmpt.Thrust))
 
 			// only stay in the Firing state for the first frame
-			ent.projectileCmpt.state = Flying
+			ent.projectileCmpt.State = Flying
 
 		case Flying:
-			force := ent.projectileCmpt.Heading().Normalize().Mul(ent.projectileCmpt.acceleration)
+			force := ent.projectileCmpt.GetHeading().Normalize().Mul(ent.projectileCmpt.Thrust)
 			ent.physicsCmpt.AddForce(force)
 
-			v := ent.physicsCmpt.Velocity()
+			v := ent.physicsCmpt.GetVelocity()
 			theta := float32(math.Atan2(float64(v.Y()), float64(v.X())))
 			ent.positionCmpt.SetRotation(theta)
 
 		case Impacting:
 			ent.physicsCmpt.SetVelocity(mgl32.Vec2{0, 0})
-			if ent.projectileCmpt.removeOnContact {
+			if ent.projectileCmpt.RemoveOnContact {
 				s.entityManager.RemoveEntity(ent.id)
 			}
 		}

@@ -1,37 +1,83 @@
 package texture
 
-import "fmt"
+import (
+	"errors"
+	"io/ioutil"
+	"path"
+
+	"gopkg.in/yaml.v2"
+
+	"github.com/brynbellomy/gl4-game/systems/assetsys"
+)
 
 type Atlas struct {
-	textures map[string][]uint32
+	name       string
+	animations map[string][]uint32
 }
 
-func NewAtlas() *Atlas {
-	return &Atlas{
-		textures: map[string][]uint32{},
+func NewAtlasFromFile(filename string, fs assetsys.IFilesystem, textureCache *TextureCache) (*Atlas, error) {
+	configFile, err := fs.OpenFile(path.Join(filename, "atlas.yaml"), 0, 0400)
+	if err != nil {
+		return nil, err
 	}
+
+	bytes, err := ioutil.ReadAll(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var m map[string]interface{}
+	err = yaml.Unmarshal(bytes, &m)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewAtlasFromConfig(textureCache, m)
+}
+
+func NewAtlasFromConfig(cache *TextureCache, config map[string]interface{}) (*Atlas, error) {
+	name, exists := config["name"].(string)
+	if !exists {
+		return nil, errors.New("missing required key 'name' (or wrong type)")
+	}
+
+	anims, exists := config["animations"].(map[string]interface{})
+	if !exists {
+		return nil, errors.New("missing required key 'animations' (or wrong type)")
+	}
+
+	animations := make(map[string][]uint32)
+	for animName, frames := range anims {
+		frames, is := frames.([]interface{})
+		if !is {
+			return nil, errors.New("animation frames must be a list of strings")
+		}
+
+		texs := make([]uint32, len(frames))
+		for i, filename := range frames {
+			if filename, is := filename.(string); is {
+				tex, err := cache.Load(filename)
+				if err != nil {
+					return nil, err
+				}
+				texs[i] = tex
+			} else {
+				return nil, errors.New("animation frames must be a list of strings")
+			}
+		}
+		animations[animName] = texs
+	}
+
+	return &Atlas{
+		name:       name,
+		animations: animations,
+	}, nil
+}
+
+func (a *Atlas) Name() string {
+	return a.name
 }
 
 func (a *Atlas) Animation(name string) []uint32 {
-	return a.textures[name]
-}
-
-func (a *Atlas) LoadAnimation(name string, filenames []string) error {
-    fmt.Println("Loading animation", name, "...")
-	textures := make([]uint32, len(filenames))
-
-	for i, filename := range filenames {
-		tex, err := globalTextureCache.Load(filename)
-		if err != nil {
-			return err
-		}
-
-		textures[i] = tex
-	}
-
-	a.textures[name] = textures
-
-    fmt.Println("Loaded animation", name, "=", textures)
-
-    return nil
+	return a.animations[name]
 }

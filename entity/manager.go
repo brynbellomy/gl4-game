@@ -4,6 +4,7 @@ type (
 	Manager struct {
 		entities []Entity
 		systems  []ISystem
+		factory  *Factory
 
 		cullable []ID
 
@@ -21,6 +22,7 @@ func NewManager(systems []ISystem) *Manager {
 		systems:  systems,
 		entities: []Entity{},
 		cullable: []ID{},
+		factory:  NewFactory(),
 	}
 
 	for _, sys := range systems {
@@ -34,6 +36,10 @@ func (m *Manager) NewEntityID() ID {
 	cur := m.idCounter
 	m.idCounter++
 	return cur
+}
+
+func (m *Manager) RegisterComponentType(typeName string, cmpt IComponent, initer IComponentIniter) {
+	m.factory.RegisterComponentType(typeName, cmpt, initer)
 }
 
 func (m *Manager) AddComponents(eid ID, components []IComponent) {

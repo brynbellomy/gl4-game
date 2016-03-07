@@ -32,11 +32,8 @@ func New() *System {
 
 func (s *System) Update(t common.Time) {
 	for _, e := range s.entities {
-		// e.physicsCmpt.AddForce(e.moveCmpt.Vector())
 		vec := e.moveCmpt.Vector()
-		// if vec.X() != 0 || vec.Y() != 0 {
 		e.physicsCmpt.SetInstantaneousVelocity(vec)
-		// }
 		e.moveCmpt.ResetVector()
 	}
 }

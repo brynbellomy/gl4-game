@@ -2,16 +2,16 @@ package gameobjsys
 
 type (
 	Component struct {
-		action     Action
-		direction  Direction
-		animations map[Action]map[Direction]string
+		Action     Action                          `config:"action"`
+		Direction  Direction                       `config:"direction"`
+		Animations map[Action]map[Direction]string `config:"animations"`
 	}
 )
 
 func NewComponent(action Action, direction Direction, animations map[Action]map[Direction]string) *Component {
 	return &Component{
-		action:     action,
-		direction:  direction,
-		animations: animations,
+		Action:     action,
+		Direction:  direction,
+		Animations: animations,
 	}
 }

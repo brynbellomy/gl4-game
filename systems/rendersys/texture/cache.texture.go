@@ -5,16 +5,59 @@ import (
 	"image"
 	"image/draw"
 	_ "image/png"
-	"os"
+	"sync"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+
+	"github.com/brynbellomy/gl4-game/systems/assetsys"
 )
 
-func New(file string) (uint32, error) {
-	imgFile, err := os.Open(file)
+type TextureCache struct {
+	mutex     sync.RWMutex
+	textures  map[string]uint32
+	assetRoot string
+	fs        assetsys.IFilesystem
+}
+
+func NewTextureCache(fs assetsys.IFilesystem) *TextureCache {
+	return &TextureCache{
+		mutex:    sync.RWMutex{},
+		textures: map[string]uint32{},
+		fs:       fs,
+	}
+}
+
+func (c *TextureCache) Load(filename string) (uint32, error) {
+	fmt.Println("texture cache: loading", filename)
+
+	c.mutex.RLock()
+	t, exists := c.textures[filename]
+	c.mutex.RUnlock()
+
+	if exists {
+		return t, nil
+
+	}
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	t, err := c.newTexture(filename)
 	if err != nil {
 		return 0, err
 	}
+
+	c.textures[filename] = t
+	return t, nil
+}
+
+func (c *TextureCache) newTexture(file string) (uint32, error) {
+	imgFile, err := c.fs.OpenFile(file, 0, 0400)
+	if err != nil {
+		return 0, err
+	}
+	defer imgFile.Close()
+
 	img, _, err := image.Decode(imgFile)
 	if err != nil {
 		return 0, err
@@ -43,7 +86,8 @@ func New(file string) (uint32, error) {
 		0,
 		gl.RGBA,
 		gl.UNSIGNED_BYTE,
-		gl.Ptr(rgba.Pix))
+		gl.Ptr(rgba.Pix),
+	)
 
 	return texture, nil
 }
