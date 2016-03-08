@@ -9,6 +9,7 @@ type (
 
 	IFilesystem interface {
 		OpenFile(name string, flag int, perm os.FileMode) (*os.File, error)
+		Subdir(name string) (IFilesystem, error)
 	}
 )
 

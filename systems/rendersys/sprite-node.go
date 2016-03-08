@@ -43,7 +43,7 @@ type (
 		uCamera     int32          // camera uniform
 		uModel      int32          // model uniform
 		uProjection int32          // texture uniform
-		uTexture    int32          // texture uniform
+		// uTexture    int32          // texture uniform
 
 		texture  uint32 // texture id
 		size     common.Size
@@ -54,50 +54,90 @@ type (
 
 func NewSpriteNode(p shader.Program) (*SpriteNode, error) {
 	program := uint32(p)
-	gl.UseProgram(program)
 
 	projectionUniform := gl.GetUniformLocation(program, gl.Str("projection\x00"))
 	cameraUniform := gl.GetUniformLocation(program, gl.Str("camera\x00"))
 	modelUniform := gl.GetUniformLocation(program, gl.Str("model\x00"))
-	textureUniform := gl.GetUniformLocation(program, gl.Str("tex\x00"))
-
-	defaultProjection := mgl32.Ident4()
-	gl.UniformMatrix4fv(projectionUniform, 1, false, &defaultProjection[0])
-	defaultCamera := mgl32.Ident4()
-	gl.UniformMatrix4fv(cameraUniform, 1, false, &defaultCamera[0])
-	defaultModel := mgl32.Ident4()
-	gl.UniformMatrix4fv(modelUniform, 1, false, &defaultModel[0])
-	gl.Uniform1i(textureUniform, 0)
 
 	gl.BindFragDataLocation(program, 0, gl.Str("outputColor\x00"))
 
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
+	// VAO initialization
+	var vao, vbo uint32
+	{
+		gl.GenVertexArrays(1, &vao)
+		gl.BindVertexArray(vao)
 
-	// Configure the vertex data
-	vertices := common.Rect(common.Size{1.0, 1.0})
+		// Configure the vertex data
+		vertices := common.Rect(common.Size{1.0, 1.0})
 
-	var vbo uint32
-	gl.GenBuffers(1, &vbo)
-	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(vertices), gl.STATIC_DRAW)
+		gl.GenBuffers(1, &vbo)
+		gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+		gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(vertices), gl.STATIC_DRAW)
 
-	vertAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vert\x00")))
-	gl.EnableVertexAttribArray(vertAttrib)
-	gl.VertexAttribPointer(vertAttrib, 3, gl.FLOAT, false, 5*4, gl.PtrOffset(0))
+		// the following code describes the format of the buffer data and stores this description
+		// inside the VAO object (so that all we have to do is call gl.BindVertexArray() during render)
+		vertAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vert\x00")))
+		gl.EnableVertexAttribArray(vertAttrib)
+		gl.VertexAttribPointer(vertAttrib, 3, gl.FLOAT, false, 5*4, gl.PtrOffset(0))
 
-	texCoordAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vertTexCoord\x00")))
-	gl.EnableVertexAttribArray(texCoordAttrib)
-	gl.VertexAttribPointer(texCoordAttrib, 2, gl.FLOAT, false, 5*4, gl.PtrOffset(3*4))
+		texCoordAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vertTexCoord\x00")))
+		gl.EnableVertexAttribArray(texCoordAttrib)
+		gl.VertexAttribPointer(texCoordAttrib, 2, gl.FLOAT, false, 5*4, gl.PtrOffset(3*4))
+	}
 
 	return &SpriteNode{
-		program:  p,
-		vao:      vao,
-		uCamera:  cameraUniform,
-		uModel:   modelUniform,
-		uTexture: textureUniform,
+		program:     p,
+		vao:         vao,
+		uCamera:     cameraUniform,
+		uModel:      modelUniform,
+		uProjection: projectionUniform,
 	}, nil
+
+	// program := uint32(p)
+	// gl.UseProgram(program)
+
+	// projectionUniform := gl.GetUniformLocation(program, gl.Str("projection\x00"))
+	// cameraUniform := gl.GetUniformLocation(program, gl.Str("camera\x00"))
+	// modelUniform := gl.GetUniformLocation(program, gl.Str("model\x00"))
+	// textureUniform := gl.GetUniformLocation(program, gl.Str("tex\x00"))
+
+	// defaultProjection := mgl32.Ident4()
+	// gl.UniformMatrix4fv(projectionUniform, 1, false, &defaultProjection[0])
+	// defaultCamera := mgl32.Ident4()
+	// gl.UniformMatrix4fv(cameraUniform, 1, false, &defaultCamera[0])
+	// defaultModel := mgl32.Ident4()
+	// gl.UniformMatrix4fv(modelUniform, 1, false, &defaultModel[0])
+	// gl.Uniform1i(textureUniform, 0)
+
+	// gl.BindFragDataLocation(program, 0, gl.Str("outputColor\x00"))
+
+	// var vao uint32
+	// gl.GenVertexArrays(1, &vao)
+	// gl.BindVertexArray(vao)
+
+	// // Configure the vertex data
+	// vertices := common.Rect(common.Size{1.0, 1.0})
+
+	// var vbo uint32
+	// gl.GenBuffers(1, &vbo)
+	// gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	// gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(vertices), gl.STATIC_DRAW)
+
+	// vertAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vert\x00")))
+	// gl.EnableVertexAttribArray(vertAttrib)
+	// gl.VertexAttribPointer(vertAttrib, 3, gl.FLOAT, false, 5*4, gl.PtrOffset(0))
+
+	// texCoordAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vertTexCoord\x00")))
+	// gl.EnableVertexAttribArray(texCoordAttrib)
+	// gl.VertexAttribPointer(texCoordAttrib, 2, gl.FLOAT, false, 5*4, gl.PtrOffset(3*4))
+
+	// return &SpriteNode{
+	// 	program:  p,
+	// 	vao:      vao,
+	// 	uCamera:  cameraUniform,
+	// 	uModel:   modelUniform,
+	// 	uTexture: textureUniform,
+	// }, nil
 }
 
 func (n *SpriteNode) SetPos(pos mgl32.Vec2) {
@@ -114,10 +154,6 @@ func (n *SpriteNode) SetRotation(rotation float32) {
 
 func (n *SpriteNode) SetTexture(tex uint32) {
 	n.texture = tex
-}
-
-func (n *SpriteNode) SetShaderProgram(p shader.Program) {
-	n.program = p
 }
 
 func (n *SpriteNode) Render(c RenderContext) {

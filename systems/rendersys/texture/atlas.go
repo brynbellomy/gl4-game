@@ -1,11 +1,12 @@
 package texture
 
 import (
-	"errors"
 	"io/ioutil"
 	"path"
 
 	"gopkg.in/yaml.v2"
+
+	"github.com/brynbellomy/go-structomancer"
 
 	"github.com/brynbellomy/gl4-game/systems/assetsys"
 )
@@ -32,44 +33,40 @@ func NewAtlasFromFile(filename string, fs assetsys.IFilesystem, textureCache *Te
 		return nil, err
 	}
 
-	return NewAtlasFromConfig(textureCache, m)
+	return NewAtlasFromConfig(textureCache, filename, m)
 }
 
-func NewAtlasFromConfig(cache *TextureCache, config map[string]interface{}) (*Atlas, error) {
-	name, exists := config["name"].(string)
-	if !exists {
-		return nil, errors.New("missing required key 'name' (or wrong type)")
-	}
+type atlasConfig struct {
+	Name       string              `config:"name"`
+	Animations map[string][]string `config:"animations"`
+}
 
-	anims, exists := config["animations"].(map[string]interface{})
-	if !exists {
-		return nil, errors.New("missing required key 'animations' (or wrong type)")
+var atlasStruct = structomancer.New(&atlasConfig{}, "config")
+
+func NewAtlasFromConfig(cache *TextureCache, assetRoot string, config map[string]interface{}) (*Atlas, error) {
+	c, err := atlasStruct.MapToStruct(config)
+	if err != nil {
+		return nil, err
 	}
+	cfg := c.(*atlasConfig)
 
 	animations := make(map[string][]uint32)
-	for animName, frames := range anims {
-		frames, is := frames.([]interface{})
-		if !is {
-			return nil, errors.New("animation frames must be a list of strings")
-		}
 
+	for animName, frames := range cfg.Animations {
 		texs := make([]uint32, len(frames))
+
 		for i, filename := range frames {
-			if filename, is := filename.(string); is {
-				tex, err := cache.Load(filename)
-				if err != nil {
-					return nil, err
-				}
-				texs[i] = tex
-			} else {
-				return nil, errors.New("animation frames must be a list of strings")
+			tex, err := cache.Load(path.Join(assetRoot, filename))
+			if err != nil {
+				return nil, err
 			}
+			texs[i] = tex
 		}
 		animations[animName] = texs
 	}
 
 	return &Atlas{
-		name:       name,
+		name:       cfg.Name,
 		animations: animations,
 	}, nil
 }

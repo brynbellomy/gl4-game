@@ -12,7 +12,9 @@ type (
 		Update(t common.Time)
 	}
 
-	ID uint64
+	ID int64
 
 	IComponent interface{}
 )
+
+const InvalidID ID = -1

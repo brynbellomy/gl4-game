@@ -1,0 +1,23 @@
+---
+name: hero
+animations:
+    walking-down:
+        - walking-down-001.png
+        - walking-down-002.png
+        - walking-down-003.png
+        - walking-down-004.png
+    walking-left:
+        - walking-left-001.png
+        - walking-left-002.png
+        - walking-left-003.png
+        - walking-left-004.png
+    walking-up:
+        - walking-up-001.png
+        - walking-up-002.png
+        - walking-up-003.png
+        - walking-up-004.png
+    walking-right:
+        - walking-right-001.png
+        - walking-right-002.png
+        - walking-right-003.png
+        - walking-right-004.png

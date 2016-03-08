@@ -2,14 +2,14 @@ package entity
 
 import (
 	"errors"
-	"reflect"
 
-	"github.com/listenonrepeat/backend/common/structomancer"
+	"github.com/brynbellomy/go-structomancer"
 )
 
 type (
 	Factory struct {
-		componentTypes map[string]cmptType
+		entityTemplates map[string][]IComponent
+		componentTypes  map[string]cmptType
 	}
 
 	cmptType struct {
@@ -18,14 +18,19 @@ type (
 	}
 
 	IComponentIniter interface {
-		InitComponent(cmpt IComponent)
+		InitComponent(cmpt IComponent) error
 	}
 )
 
 func NewFactory() *Factory {
 	return &Factory{
-		componentTypes: map[string]cmptType{},
+		entityTemplates: map[string][]IComponent{},
+		componentTypes:  map[string]cmptType{},
 	}
+}
+
+func (f *Factory) RegisterEntityTemplate(name string, cmpts []IComponent) {
+	f.entityTemplates[name] = cmpts
 }
 
 func (f *Factory) RegisterComponentType(typeName string, cmpt IComponent, cmptIniter IComponentIniter) {
@@ -35,61 +40,74 @@ func (f *Factory) RegisterComponentType(typeName string, cmpt IComponent, cmptIn
 	}
 }
 
-var entityIDType = reflect.TypeOf(ID(0))
+// func (f *Factory) EntityFromTemplate(name string) ([]IComponent, error) {
+// 	// f.entityTemplates[]
+// }
+
+type entityConfig struct {
+	ID         ID                       `config:"id"`
+	Components []map[string]interface{} `config:"components"`
+}
+
+var entityZ = structomancer.New(&entityConfig{}, "config")
 
 func (f *Factory) EntityFromConfig(cfg map[string]interface{}) (ID, []IComponent, error) {
-	id, exists := cfg["id"]
-	if !exists {
-		return 0, nil, errors.New("key 'id' is missing")
-	} else if !reflect.TypeOf(id).ConvertibleTo(entityIDType) {
-		return 0, nil, errors.New("key 'id' is wrong type")
+	c, err := entityZ.MapToStruct(cfg)
+	if err != nil {
+		return 0, nil, errors.New("error deserializing entity from config: " + err.Error())
 	}
 
-	eid := reflect.ValueOf(id).Convert(entityIDType).Interface().(ID)
+	config := c.(*entityConfig)
 
-	cmptcfgs, exists := cfg["components"].([]interface{})
-	if !exists {
-		return 0, nil, errors.New("key 'components' is missing")
-	}
-
-	cmpts := make([]IComponent, len(cmptcfgs))
-
-	for i, cmptcfg := range cmptcfgs {
-		cmpt, err := f.ComponentFromConfig(cmptcfg.(map[string]interface{}))
+	cmpts := make([]IComponent, len(config.Components))
+	for i, cmptcfg := range config.Components {
+		cmpt, err := f.ComponentFromConfig(cmptcfg)
 		if err != nil {
-			return 0, nil, err
+			return 0, nil, errors.New("error deserializing component from config: " + err.Error())
 		}
 		cmpts[i] = cmpt
 	}
 
-	return eid, cmpts, nil
+	return config.ID, cmpts, nil
 }
 
+type componentConfig struct {
+	Type   string                 `config:"type"`
+	Config map[string]interface{} `config:"config"`
+}
+
+var componentZ = structomancer.New(&componentConfig{}, "config")
+
 func (f *Factory) ComponentFromConfig(cmptcfg map[string]interface{}) (IComponent, error) {
-	t, exists := cmptcfg["type"].(string)
-	if !exists {
-		return nil, errors.New("missing 'type' key")
+	c, err := componentZ.MapToStruct(cmptcfg)
+	if err != nil {
+		return nil, err
 	}
 
-	cfg, exists := cmptcfg["config"].(map[string]interface{})
-	if !exists {
+	cfg := c.(*componentConfig)
+	if cfg.Type == "" {
+		return nil, errors.New("missing 'type' key")
+	} else if cfg.Config == nil {
 		return nil, errors.New("missing 'config' key")
 	}
 
-	ctype, exists := f.componentTypes[t]
+	ctype, exists := f.componentTypes[cfg.Type]
 	if !exists {
-		return nil, errors.New("component type '" + t + "' is not registered")
+		return nil, errors.New("component type '" + cfg.Type + "' is not registered")
 	}
 
-	maybeCmpt, err := ctype.z.MapToStruct(cfg)
+	maybeCmpt, err := ctype.z.MapToStruct(cfg.Config)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("error deserializing component (type = " + cfg.Type + ")" + err.Error())
 	}
 
 	cmpt := maybeCmpt.(IComponent)
 
 	if ctype.initer != nil {
-		ctype.initer.InitComponent(cmpt)
+		err := ctype.initer.InitComponent(cmpt)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return cmpt, nil

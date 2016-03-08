@@ -38,9 +38,28 @@ func (m *Manager) NewEntityID() ID {
 	return cur
 }
 
+func (m *Manager) RegisterEntityTemplate(name string, cmpts []IComponent) {
+	m.factory.RegisterEntityTemplate(name, cmpts)
+}
+
 func (m *Manager) RegisterComponentType(typeName string, cmpt IComponent, initer IComponentIniter) {
 	m.factory.RegisterComponentType(typeName, cmpt, initer)
 }
+
+func (m *Manager) EntityFromConfig(config map[string]interface{}) (ID, []IComponent, error) {
+	return m.factory.EntityFromConfig(config)
+}
+
+// func (m *Manager) AddEntityFromConfig(config map[string]interface{}) error {
+// 	eid, cmpts, err := m.factory.EntityFromConfig(config)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	m.AddComponents(eid, cmpts)
+
+// 	return nil
+// }
 
 func (m *Manager) AddComponents(eid ID, components []IComponent) {
 	m.entities = append(m.entities, Entity{ID: eid, Components: components})

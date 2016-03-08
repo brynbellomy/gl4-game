@@ -16,3 +16,7 @@ func NewDefaultFilesystem(assetRoot string) *DefaultFilesystem {
 func (fs *DefaultFilesystem) OpenFile(name string, flag int, perm os.FileMode) (*os.File, error) {
 	return os.OpenFile(path.Join(fs.assetRoot, name), flag, perm)
 }
+
+func (fs *DefaultFilesystem) Subdir(name string) (IFilesystem, error) {
+	return NewDefaultFilesystem(path.Join(fs.assetRoot, name)), nil
+}

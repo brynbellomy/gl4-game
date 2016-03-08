@@ -2,9 +2,9 @@ package spritesys
 
 type (
 	Component struct {
-		textureName     string
-		isTextureLoaded bool
-		texture         uint32
+		TextureName     string `config:"texture"`
+		IsTextureLoaded bool   `config:"-"`
+		Texture         uint32 `config:"-"`
 	}
 )
 
@@ -13,17 +13,17 @@ func NewComponent(textureName string) *Component {
 }
 
 func (c *Component) GetTexture() uint32 {
-	return c.texture
+	return c.Texture
 }
 
 func (c *Component) SetTexture(tex uint32) {
-	c.texture = tex
+	c.Texture = tex
 }
 
 func (c *Component) GetTextureName() string {
-	return c.textureName
+	return c.TextureName
 }
 
 func (c *Component) SetTextureName(tex string) {
-	c.textureName = tex
+	c.TextureName = tex
 }

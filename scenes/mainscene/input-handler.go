@@ -19,6 +19,15 @@ type InputHandler struct {
 	onFireWeapon     func(controlledEntity entity.ID, x ActionFireWeapon)
 }
 
+func NewInputHandler(moveSystem *movesys.System, positionSystem *positionsys.System, gameobjSystem *gameobjsys.System) *InputHandler {
+	return &InputHandler{
+		moveSystem:       moveSystem,
+		positionSystem:   positionSystem,
+		gameobjSystem:    gameobjSystem,
+		controlledEntity: entity.InvalidID,
+	}
+}
+
 func (h *InputHandler) SetControlledEntity(eid entity.ID) {
 	h.controlledEntity = eid
 }
@@ -48,12 +57,16 @@ func (h *InputHandler) HandleInputState(t common.Time, st inputsys.IInputState) 
 		totalAccel = totalAccel.Add(mgl32.Vec2{-accelAmt, 0.0})
 	}
 
-	h.moveSystem.SetMovementVector(h.controlledEntity, totalAccel)
+	if h.controlledEntity != entity.InvalidID {
+		h.moveSystem.SetMovementVector(h.controlledEntity, totalAccel)
+	}
 
 	for _, x := range state.actions {
 		switch x := x.(type) {
 		case ActionFireWeapon:
-			h.onFireWeapon(h.controlledEntity, x)
+			if h.onFireWeapon != nil {
+				h.onFireWeapon(h.controlledEntity, x)
+			}
 		}
 	}
 }

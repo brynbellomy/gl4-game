@@ -24,8 +24,6 @@ func NewAtlasCache(textureCache *TextureCache, fs assetsys.IFilesystem) *AtlasCa
 }
 
 func (c *AtlasCache) Load(filename string) (*Atlas, error) {
-	fmt.Println("atlas cache: loading", filename)
-
 	c.mutex.RLock()
 	atlas, exists := c.atlasses[filename]
 	c.mutex.RUnlock()
@@ -37,6 +35,7 @@ func (c *AtlasCache) Load(filename string) (*Atlas, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
+	fmt.Println("atlas cache: loading", filename)
 	atlas, err := NewAtlasFromFile(filename, c.fs, c.textureCache)
 	if err != nil {
 		return nil, err

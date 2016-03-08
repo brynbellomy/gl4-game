@@ -31,7 +31,7 @@ func New(textureCache *texture.TextureCache) *System {
 
 func (s *System) Update(t common.Time) {
 	for _, ent := range s.entities {
-		if !ent.spriteCmpt.isTextureLoaded {
+		if !ent.spriteCmpt.IsTextureLoaded {
 			textureName := ent.spriteCmpt.GetTextureName()
 			var tex uint32
 			if textureName != "" {
@@ -42,6 +42,7 @@ func (s *System) Update(t common.Time) {
 				tex = t
 			}
 			ent.spriteCmpt.SetTexture(tex)
+			ent.spriteCmpt.IsTextureLoaded = true
 		}
 	}
 
@@ -51,7 +52,7 @@ func (s *System) Update(t common.Time) {
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	em.RegisterComponentType("render", &Component{}, nil)
+	em.RegisterComponentType("sprite", &Component{}, nil)
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {

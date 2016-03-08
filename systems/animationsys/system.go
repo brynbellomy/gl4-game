@@ -62,10 +62,6 @@ func (s *System) Update(t common.Time) {
 	for _, e := range s.entities {
 		cmpt := e.animationCmpt
 
-		if !cmpt.IsAnimating {
-			continue
-		}
-
 		atlas, err := s.atlasCache.Load(cmpt.AtlasName)
 		if err != nil {
 			panic(err.Error())
@@ -73,6 +69,11 @@ func (s *System) Update(t common.Time) {
 
 		textures := atlas.Animation(cmpt.Animation)
 		if len(textures) <= 0 {
+			continue
+		}
+
+		if !cmpt.IsAnimating {
+			e.renderCmpt.SetTexture(textures[cmpt.CurrentIndex])
 			continue
 		}
 

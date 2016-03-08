@@ -19,6 +19,7 @@ type (
 		camera     mgl32.Mat4
 
 		shaderProgramCache *shader.ProgramCache
+		nodeFactory        *NodeFactory
 	}
 
 	entityAspect struct {
@@ -29,10 +30,14 @@ type (
 )
 
 func New(shaderProgramCache *shader.ProgramCache) *System {
+	nodeFactory := NewNodeFactory()
+	nodeFactory.RegisterNodeType("sprite", &SpriteNodeFactory{shaderProgramCache})
+
 	return &System{
 		entities:           []entityAspect{},
 		entityMap:          map[entity.ID]*entityAspect{},
 		shaderProgramCache: shaderProgramCache,
+		nodeFactory:        nodeFactory,
 	}
 }
 
@@ -51,23 +56,11 @@ func (s *System) Update(t common.Time) {
 	}
 
 	for _, ent := range s.entities {
-		if !ent.renderCmpt.shaderProgramLoaded {
-			program, err := s.shaderProgramCache.LoadProgram(ent.renderCmpt.vertexShaderFile, ent.renderCmpt.fragmentShaderFile)
-			if err != nil {
-				panic(err.Error())
-			}
-			ent.renderCmpt.SetShaderProgram(program)
-			ent.renderCmpt.shaderProgramLoaded = true
-		}
-	}
-
-	for _, ent := range s.entities {
 		rnode := ent.renderCmpt.renderNode
 		rnode.SetPos(ent.positionCmpt.GetPos())
 		rnode.SetSize(ent.positionCmpt.GetSize())
 		rnode.SetRotation(ent.positionCmpt.GetRotation())
 		rnode.SetTexture(ent.renderCmpt.Texture())
-		rnode.SetShaderProgram(ent.renderCmpt.ShaderProgram())
 		rnode.Render(renderCtx)
 	}
 }
@@ -96,6 +89,15 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 		if positionCmpt == nil {
 			panic("render component requires position component")
 		}
+
+		// initialize the render node on the `renderCmpt`
+		node, err := s.nodeFactory.NodeFromConfig(renderCmpt.NodeType, renderCmpt.NodeConfig)
+		if err != nil {
+			// @@TODO
+			panic(err.Error())
+		}
+
+		renderCmpt.renderNode = node
 
 		s.entities = append(s.entities, entityAspect{
 			id:           eid,

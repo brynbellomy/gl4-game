@@ -1,9 +1,12 @@
 package mainscene
 
 import (
+	"io/ioutil"
+
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 	"github.com/go-gl/mathgl/mgl32"
+	"gopkg.in/yaml.v2"
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
@@ -16,9 +19,9 @@ import (
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
 	"github.com/brynbellomy/gl4-game/systems/projectilesys"
 	"github.com/brynbellomy/gl4-game/systems/rendersys"
-    "github.com/brynbellomy/gl4-game/systems/spritesys"
+	"github.com/brynbellomy/gl4-game/systems/rendersys/shader"
 	"github.com/brynbellomy/gl4-game/systems/rendersys/texture"
-    "github.com/brynbellomy/gl4-game/systems/rendersys/shader"
+	"github.com/brynbellomy/gl4-game/systems/spritesys"
 )
 
 type (
@@ -35,42 +38,49 @@ type (
 		inputSystem  *inputsys.System
 		inputHandler *InputHandler
 
-		assetSystem  *assetsys.System
-		textureCache *texture.TextureCache
-        textureAtlasCache *texture.AtlasCache
-        shaderProgramCache *shader.ProgramCache
+		assetSystem        *assetsys.System
+		textureCache       *texture.TextureCache
+		textureAtlasCache  *texture.AtlasCache
+		shaderProgramCache *shader.ProgramCache
 
 		positionSystem   *positionsys.System
 		physicsSystem    *physicssys.System
 		renderSystem     *rendersys.System
-        spriteSystem *spritesys.System
+		spriteSystem     *spritesys.System
 		animationSystem  *animationsys.System
 		gameobjSystem    *gameobjsys.System
 		moveSystem       *movesys.System
 		projectileSystem *projectilesys.System
 
-		fireballFactory *FireballFactory
+		// fireballFactory *FireballFactory
 	}
 )
 
 func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
-	fireballFactory, err := NewFireballFactory(assetRoot)
+	// fireballFactory, err := NewFireballFactory(assetRoot)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	assetSystem := assetsys.New(assetsys.NewDefaultFilesystem(assetRoot))
+
+	textureSubdir, err := assetSystem.Filesystem().Subdir("textures")
 	if err != nil {
 		return nil, err
 	}
 
-    var (
-        assetSystem  = assetsys.New(assetsys.NewDefaultFilesystem(s.assetRoot))
-        textureCache = texture.NewCache(assetSystem.Filesystem())
-        textureAtlasCache = texture.NewAtlasCache(textureCache, assetSystem.Filesystem())
-        shaderProgramCache = shader.NewProgramCache()
-    )
+	var (
+		textureCache       = texture.NewTextureCache(textureSubdir)
+		textureAtlasCache  = texture.NewAtlasCache(textureCache, textureSubdir)
+		shaderCache        = shader.NewShaderCache()
+		shaderProgramCache = shader.NewProgramCache(shaderCache)
+	)
 
 	var (
 		positionSystem   = positionsys.New()
 		physicsSystem    = physicssys.New()
 		renderSystem     = rendersys.New(shaderProgramCache)
-        spriteSystem = spritesys.New(textureCache)
+		spriteSystem     = spritesys.New(textureCache)
 		animationSystem  = animationsys.New(textureAtlasCache)
 		gameobjSystem    = gameobjsys.New()
 		moveSystem       = movesys.New()
@@ -79,21 +89,16 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 
 	var (
 		inputMapper  = &InputMapper{}
-		inputHandler = &InputHandler{
-			moveSystem:     moveSystem,
-			positionSystem: positionSystem,
-			gameobjSystem:  gameobjSystem,
-		}
-		inputSystem = inputsys.New(newInputState(), inputMapper, inputHandler)
+		inputHandler = NewInputHandler(moveSystem, positionSystem, gameobjSystem)
+		inputSystem  = inputsys.New(newInputState(), inputMapper, inputHandler)
 	)
-
 
 	var (
 		entityManager = entity.NewManager([]entity.ISystem{
 			positionSystem,
 			physicsSystem,
 			renderSystem,
-            spriteSystem,
+			spriteSystem,
 			animationSystem,
 			gameobjSystem,
 			moveSystem,
@@ -109,7 +114,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			positionSystem:   positionSystem,
 			physicsSystem:    physicsSystem,
 			renderSystem:     renderSystem,
-            spriteSystem:  spriteSystem,
+			spriteSystem:     spriteSystem,
 			animationSystem:  animationSystem,
 			gameobjSystem:    gameobjSystem,
 			moveSystem:       moveSystem,
@@ -118,12 +123,12 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			inputSystem:  inputSystem,
 			inputHandler: inputHandler,
 
-            assetSystem: assetSystem,
-            textureCache: textureCache,
-            textureAtlasCache: textureAtlasCache,
-            shaderProgramCache: shaderProgramCache,
+			assetSystem:        assetSystem,
+			textureCache:       textureCache,
+			textureAtlasCache:  textureAtlasCache,
+			shaderProgramCache: shaderProgramCache,
 
-			fireballFactory: fireballFactory,
+			// fireballFactory: fireballFactory,
 		}
 	)
 
@@ -133,120 +138,74 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 func (s *MainScene) Prepare() error {
 	ww, wh := s.window.GetSize()
 
-	//
-	// render sys
-	//
 	s.projection = mgl32.Perspective(mgl32.DegToRad(45.0), float32(ww)/float32(wh), 0.1, 10.0)
 	s.renderSystem.SetProjection(s.projection)
 
-	//
-	// animation sys
-	//
-	{
-        fireballAtlas, err := s.textureAtlasCache.Load("textures/fireball")
+	file, err := s.assetSystem.Filesystem().OpenFile("scenes/main-scene.yaml", 0, 0400)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	type scene struct {
+		Entities []map[string]interface{} `yaml:"entities"`
+	}
+
+	var sceneData scene
+	err = yaml.Unmarshal(bytes, &sceneData)
+	if err != nil {
+		return err
+	}
+
+	for _, ent := range sceneData.Entities {
+		eid, cmpts, err := s.entityManager.EntityFromConfig(ent)
 		if err != nil {
 			return err
 		}
 
-        heroAtlas, err := s.textureAtlasCache.Load("textures/hero")
-        if err != nil {
-            return err
-        }
-
-        skeletonAtlas, err := s.textureAtlasCache.Load("textures/skeleton")
-        if err != nil {
-            return err
-        }
-
-		// err = s.animationSystem.RegisterTextureAtlas("hero", s.assetRoot, map[string][]string{
-		// 	"walking-down": []string{
-		// 		"textures/lavos/walking-down-001.png",
-		// 		"textures/lavos/walking-down-002.png",
-		// 		"textures/lavos/walking-down-003.png",
-		// 		"textures/lavos/walking-down-004.png",
-		// 	},
-		// 	"walking-left": []string{
-		// 		"textures/lavos/walking-left-001.png",
-		// 		"textures/lavos/walking-left-002.png",
-		// 		"textures/lavos/walking-left-003.png",
-		// 		"textures/lavos/walking-left-004.png",
-		// 	},
-		// 	"walking-up": []string{
-		// 		"textures/lavos/walking-up-001.png",
-		// 		"textures/lavos/walking-up-002.png",
-		// 		"textures/lavos/walking-up-003.png",
-		// 		"textures/lavos/walking-up-004.png",
-		// 	},
-		// 	"walking-right": []string{
-		// 		"textures/lavos/walking-right-001.png",
-		// 		"textures/lavos/walking-right-002.png",
-		// 		"textures/lavos/walking-right-003.png",
-		// 		"textures/lavos/walking-right-004.png",
-		// 	},
-		// })
-
-		// if err != nil {
-		// 	return err
-		// }
-
-		// err = s.animationSystem.RegisterTextureAtlas("skeleton", s.assetRoot, map[string][]string{
-		// 	"walking-down": []string{
-		// 		"textures/skeleton/walking-down-001.png",
-		// 		"textures/skeleton/walking-down-002.png",
-		// 		"textures/skeleton/walking-down-003.png",
-		// 	},
-		// 	"walking-left": []string{
-		// 		"textures/skeleton/walking-left-001.png",
-		// 		"textures/skeleton/walking-left-002.png",
-		// 		"textures/skeleton/walking-left-003.png",
-		// 	},
-		// 	"walking-up": []string{
-		// 		"textures/skeleton/walking-up-001.png",
-		// 		"textures/skeleton/walking-up-002.png",
-		// 		"textures/skeleton/walking-up-003.png",
-		// 	},
-		// 	"walking-right": []string{
-		// 		"textures/skeleton/walking-right-001.png",
-		// 		"textures/skeleton/walking-right-002.png",
-		// 		"textures/skeleton/walking-right-003.png",
-		// 	},
-		// })
-
-		// if err != nil {
-		// 	return err
-		// }
+		s.entityManager.AddComponents(eid, cmpts)
 	}
 
-	//
-	// entities
-	//
+	// load all entity templates
 	{
-		bgCmpts, err := bg(s.assetRoot)
+		entityTplDir, err := s.assetSystem.Filesystem().Subdir("entities")
 		if err != nil {
 			return err
 		}
-		bgID := s.entityManager.NewEntityID()
-		s.entityManager.AddComponents(bgID, bgCmpts)
-	}
 
-	{
-		heroCmpts, err := hero(s.assetRoot)
-		if err != nil {
-			return err
+		tpls := []string{"fireball.yaml"}
+
+		for _, filename := range tpls {
+			file, err := entityTplDir.OpenFile(filename, 0, 0400)
+			if err != nil {
+				return err
+			}
+
+			bytes, err := ioutil.ReadAll(file)
+			if err != nil {
+				return err
+			}
+
+			cfg := map[string]interface{}{}
+			err = yaml.Unmarshal(bytes, cfg)
+			if err != nil {
+				return err
+			}
+
+			_, cmpts, err := s.entityManager.EntityFromConfig(cfg)
+			if err != nil {
+				return err
+			}
+
+			s.entityManager.RegisterEntityTemplate(cfg["name"].(string), cmpts)
 		}
-		s.heroID = s.entityManager.NewEntityID()
-		s.entityManager.AddComponents(s.heroID, heroCmpts)
 	}
 
-	{
-		skeletonCmpts, err := skeleton(s.assetRoot)
-		if err != nil {
-			return err
-		}
-		skeletonID := s.entityManager.NewEntityID()
-		s.entityManager.AddComponents(skeletonID, skeletonCmpts)
-	}
-
+	s.heroID = entity.ID(1)
 	s.cameraID = s.heroID
 
 	s.inputSystem.BecomeInputResponder(s.window)
@@ -305,21 +264,22 @@ func (s *MainScene) getCamera() mgl32.Mat4 {
 }
 
 func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon) {
-	targetPos, err := s.getWorldPos(x.WindowPos)
-	if err != nil {
-		panic(err)
-	}
+	// targetPos, err := s.getWorldPos(x.WindowPos)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	pos := s.positionSystem.GetPos(controlledEntity)
-	vec := targetPos.Sub(pos)
+	// pos := s.positionSystem.GetPos(controlledEntity)
+	// vec := targetPos.Sub(pos)
 
-	fireball, err := s.fireballFactory.Build(pos, vec)
-	if err != nil {
-		// @@TODO
-		panic(err)
-	}
+	// eid := s.entityManager.NewEntityID()
+	// cmpts, err := s.entityManager.EntityFromTemplate("fireball")
+	// if err != nil {
+	// 	// @@TODO
+	// 	panic(err)
+	// }
 
-	s.entityManager.AddComponents(s.entityManager.NewEntityID(), fireball)
+	// s.entityManager.AddComponents(eid, cmpts)
 }
 
 func (s *MainScene) Update() {
@@ -332,8 +292,8 @@ func (s *MainScene) Update() {
 	s.moveSystem.Update(t)
 	s.physicsSystem.Update(t)
 	s.positionSystem.Update(t)
-    s.spriteSystem.Update(t)
-    s.animationSystem.Update(t)
+	s.spriteSystem.Update(t)
+	s.animationSystem.Update(t)
 
 	s.renderSystem.SetCamera(s.getCamera())
 	s.renderSystem.Update(t)

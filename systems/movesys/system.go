@@ -47,7 +47,7 @@ func (s *System) SetMovementVector(eid entity.ID, vec mgl32.Vec2) {
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	// no-op
+	em.RegisterComponentType("move", &Component{}, nil)
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {
