@@ -1,5 +1,9 @@
 package rendersys
 
+import (
+	"github.com/brynbellomy/gl4-game/entity"
+)
+
 type (
 	Component struct {
 		renderNode INode  `config:"-"`
@@ -16,4 +20,9 @@ func (c *Component) Texture() uint32 {
 
 func (c *Component) SetTexture(tex uint32) {
 	c.texture = tex
+}
+
+func (c *Component) Clone() entity.IComponent {
+	x := *c
+	return &x
 }

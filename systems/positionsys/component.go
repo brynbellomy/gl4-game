@@ -4,6 +4,7 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/brynbellomy/gl4-game/common"
+	"github.com/brynbellomy/gl4-game/entity"
 )
 
 type (
@@ -49,4 +50,9 @@ func (c *Component) GetZIndex() int {
 
 func (c *Component) SetZIndex(z int) {
 	c.ZIndex = z
+}
+
+func (c *Component) Clone() entity.IComponent {
+	x := *c
+	return &x
 }

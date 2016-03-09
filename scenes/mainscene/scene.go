@@ -1,6 +1,7 @@
 package mainscene
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
@@ -51,17 +52,10 @@ type (
 		gameobjSystem    *gameobjsys.System
 		moveSystem       *movesys.System
 		projectileSystem *projectilesys.System
-
-		// fireballFactory *FireballFactory
 	}
 )
 
 func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
-	// fireballFactory, err := NewFireballFactory(assetRoot)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	assetSystem := assetsys.New(assetsys.NewDefaultFilesystem(assetRoot))
 
 	textureSubdir, err := assetSystem.Filesystem().Subdir("textures")
@@ -69,10 +63,20 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		return nil, err
 	}
 
+	shaderSubdir, err := assetSystem.Filesystem().Subdir("shaders")
+	if err != nil {
+		return nil, err
+	}
+
+	entitySubdir, err := assetSystem.Filesystem().Subdir("entities")
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		textureCache       = texture.NewTextureCache(textureSubdir)
 		textureAtlasCache  = texture.NewAtlasCache(textureCache, textureSubdir)
-		shaderCache        = shader.NewShaderCache()
+		shaderCache        = shader.NewShaderCache(shaderSubdir)
 		shaderProgramCache = shader.NewProgramCache(shaderCache)
 	)
 
@@ -94,7 +98,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 	)
 
 	var (
-		entityManager = entity.NewManager([]entity.ISystem{
+		entityManager = entity.NewManager(entitySubdir, []entity.ISystem{
 			positionSystem,
 			physicsSystem,
 			renderSystem,
@@ -127,8 +131,6 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			textureCache:       textureCache,
 			textureAtlasCache:  textureAtlasCache,
 			shaderProgramCache: shaderProgramCache,
-
-			// fireballFactory: fireballFactory,
 		}
 	)
 
@@ -170,41 +172,6 @@ func (s *MainScene) Prepare() error {
 		s.entityManager.AddComponents(eid, cmpts)
 	}
 
-	// load all entity templates
-	{
-		entityTplDir, err := s.assetSystem.Filesystem().Subdir("entities")
-		if err != nil {
-			return err
-		}
-
-		tpls := []string{"fireball.yaml"}
-
-		for _, filename := range tpls {
-			file, err := entityTplDir.OpenFile(filename, 0, 0400)
-			if err != nil {
-				return err
-			}
-
-			bytes, err := ioutil.ReadAll(file)
-			if err != nil {
-				return err
-			}
-
-			cfg := map[string]interface{}{}
-			err = yaml.Unmarshal(bytes, cfg)
-			if err != nil {
-				return err
-			}
-
-			_, cmpts, err := s.entityManager.EntityFromConfig(cfg)
-			if err != nil {
-				return err
-			}
-
-			s.entityManager.RegisterEntityTemplate(cfg["name"].(string), cmpts)
-		}
-	}
-
 	s.heroID = entity.ID(1)
 	s.cameraID = s.heroID
 
@@ -213,7 +180,7 @@ func (s *MainScene) Prepare() error {
 	s.inputHandler.onFireWeapon = s.onFireWeapon
 
 	s.physicsSystem.OnCollision(func(c physicssys.Collision) {
-		// fmt.Printf("collision ~> %+v\n", c)
+		fmt.Printf("collision ~> %+v\n", c)
 	})
 
 	return nil
@@ -264,22 +231,30 @@ func (s *MainScene) getCamera() mgl32.Mat4 {
 }
 
 func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon) {
-	// targetPos, err := s.getWorldPos(x.WindowPos)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	targetPos, err := s.getWorldPos(x.WindowPos)
+	if err != nil {
+		panic(err)
+	}
 
-	// pos := s.positionSystem.GetPos(controlledEntity)
-	// vec := targetPos.Sub(pos)
+	pos := s.positionSystem.GetPos(controlledEntity)
+	vec := targetPos.Sub(pos)
 
-	// eid := s.entityManager.NewEntityID()
-	// cmpts, err := s.entityManager.EntityFromTemplate("fireball")
-	// if err != nil {
-	// 	// @@TODO
-	// 	panic(err)
-	// }
+	eid, cmpts, err := s.entityManager.EntityFromTemplate("fireball")
+	if err != nil {
+		// @@TODO
+		panic(err)
+	}
 
-	// s.entityManager.AddComponents(eid, cmpts)
+	for _, cmpt := range cmpts {
+		switch cmpt := cmpt.(type) {
+		case *projectilesys.Component:
+			cmpt.SetHeading(vec)
+		case *positionsys.Component:
+			cmpt.SetPos(pos)
+		}
+	}
+
+	s.entityManager.AddComponents(eid, cmpts)
 }
 
 func (s *MainScene) Update() {

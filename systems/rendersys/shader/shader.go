@@ -3,8 +3,6 @@ package shader
 import (
 	"fmt"
 	_ "image/png"
-	"io/ioutil"
-	"os"
 	"strings"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
@@ -21,22 +19,6 @@ const (
 	VertexShader   ShaderType = gl.VERTEX_SHADER
 	FragmentShader ShaderType = gl.FRAGMENT_SHADER
 )
-
-func NewShader(file string, shaderType ShaderType) (Shader, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return 0, err
-	}
-
-	bytes, err := ioutil.ReadAll(f)
-	if err != nil {
-		return 0, err
-	}
-
-	bytes = append(bytes, '\x00')
-
-	return compileShader(string(bytes)+"", shaderType)
-}
 
 func NewProgram(vertexShader, fragmentShader Shader) (Program, error) {
 	program := gl.CreateProgram()

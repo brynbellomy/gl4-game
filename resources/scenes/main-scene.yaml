@@ -13,8 +13,8 @@ entities:
             config:
                 nodeType: sprite
                 nodeConfig:
-                    vertex-shader: shaders/default-sprite.vertex.glsl
-                    fragment-shader: shaders/default-sprite.fragment.glsl
+                    vertex-shader:   default-sprite.vertex.glsl
+                    fragment-shader: default-sprite.fragment.glsl
         -   type: sprite
             config:
                 texture: square.png
@@ -42,8 +42,8 @@ entities:
             config:
                 nodeType: sprite
                 nodeConfig:
-                    vertex-shader: shaders/default-sprite.vertex.glsl
-                    fragment-shader: shaders/default-sprite.fragment.glsl
+                    vertex-shader:   default-sprite.vertex.glsl
+                    fragment-shader: default-sprite.fragment.glsl
         -   type: animation
             config:
                 atlasName: hero
@@ -66,3 +66,49 @@ entities:
             config:
                 vector: [0, 0]
 
+
+
+    -   name: skeleton
+        id: 2
+        components:
+        -   type: position
+            config:
+                pos: [1, 1]
+                size: [0.2, 0.4]
+                rotation: 0
+                z-index: 1
+        -   type: physics
+            config:
+                velocity: [0, 0]
+                maxVelocity: 20
+                totalCurrentForce: [0, 0]
+                boundingBox: [[-0.1, -0.2], [-0.1, 0.2], [0.1, 0.2], [0.1, -0.2]]
+                collisionMask: 2
+                collidesWith: 0
+        -   type: render
+            config:
+                nodeType: sprite
+                nodeConfig:
+                    vertex-shader:   default-sprite.vertex.glsl
+                    fragment-shader: default-sprite.fragment.glsl
+        -   type: animation
+            config:
+                atlasName: skeleton
+                animation: walking-down
+                isAnimating: false
+                currentIndex: 0
+                animationStart: 0
+                fps: 2
+        -   type: gameobj
+            config:
+                action: 0
+                direction: 0
+                animations:
+                    0:
+                        0: walking-down
+                        1: walking-left
+                        2: walking-up
+                        3: walking-right
+        -   type: move
+            config:
+                vector: [0, 0]

@@ -5,12 +5,6 @@ import (
 	"sync"
 )
 
-// var globalProgramCache = NewProgramCache()
-
-// func LoadProgram(vertexShaderFile, fragmentShaderFile string) (Program, error) {
-// 	return globalProgramCache.LoadProgram(vertexShaderFile, fragmentShaderFile)
-// }
-
 type (
 	ProgramCache struct {
 		mutex       sync.RWMutex
@@ -29,9 +23,7 @@ func NewProgramCache(shaderCache *ShaderCache) *ProgramCache {
 	}
 }
 
-func (c *ProgramCache) LoadProgram(vertexShaderFile, fragmentShaderFile string) (Program, error) {
-	fmt.Println("program cache: loading", "[", vertexShaderFile, "+", fragmentShaderFile, "]")
-
+func (c *ProgramCache) Load(vertexShaderFile, fragmentShaderFile string) (Program, error) {
 	key := programKey{vertexShaderFile, fragmentShaderFile}
 
 	c.mutex.RLock()
@@ -42,15 +34,17 @@ func (c *ProgramCache) LoadProgram(vertexShaderFile, fragmentShaderFile string) 
 		return program, nil
 	}
 
+	fmt.Println("program cache: loading", "[", vertexShaderFile, "+", fragmentShaderFile, "]")
+
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	vs, err := c.shaderCache.LoadShader(vertexShaderFile, VertexShader)
+	vs, err := c.shaderCache.Load(vertexShaderFile, VertexShader)
 	if err != nil {
 		return 0, err
 	}
 
-	fs, err := c.shaderCache.LoadShader(fragmentShaderFile, FragmentShader)
+	fs, err := c.shaderCache.Load(fragmentShaderFile, FragmentShader)
 	if err != nil {
 		return 0, err
 	}

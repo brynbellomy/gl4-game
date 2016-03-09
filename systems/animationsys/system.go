@@ -90,7 +90,7 @@ func (s *System) Update(t common.Time) {
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	em.RegisterComponentType("animation", &Component{}, nil)
+	em.RegisterComponentType("animation", &Component{})
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {

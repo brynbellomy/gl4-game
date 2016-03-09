@@ -66,7 +66,7 @@ func (s *System) Update(t common.Time) {
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	em.RegisterComponentType("render", &Component{}, nil)
+	em.RegisterComponentType("render", &Component{})
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {

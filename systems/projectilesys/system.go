@@ -89,7 +89,7 @@ func (s *System) Update(t common.Time) {
 
 func (s *System) WillJoinManager(em *entity.Manager) {
 	s.entityManager = em
-	em.RegisterComponentType("projectile", &Component{}, nil)
+	em.RegisterComponentType("projectile", &Component{})
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {

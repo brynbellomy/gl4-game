@@ -165,7 +165,7 @@ func (s *System) checkCollision(entA, entB entityAspect) bool {
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	em.RegisterComponentType("physics", &Component{}, nil)
+	em.RegisterComponentType("physics", &Component{})
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {

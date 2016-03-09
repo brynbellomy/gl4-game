@@ -1,6 +1,9 @@
 package animationsys
 
-import "github.com/brynbellomy/gl4-game/common"
+import (
+	"github.com/brynbellomy/gl4-game/common"
+	"github.com/brynbellomy/gl4-game/entity"
+)
 
 type (
 	Component struct {
@@ -23,4 +26,9 @@ func (c *Component) SetAnimation(animation string) {
 
 func (c *Component) SetIsAnimating(is bool) {
 	c.IsAnimating = is
+}
+
+func (c *Component) Clone() entity.IComponent {
+	x := *c
+	return &x
 }

@@ -1,5 +1,9 @@
 package gameobjsys
 
+import (
+	"github.com/brynbellomy/gl4-game/entity"
+)
+
 type (
 	Component struct {
 		Action     Action                          `config:"action"`
@@ -14,4 +18,9 @@ func NewComponent(action Action, direction Direction, animations map[Action]map[
 		Direction:  direction,
 		Animations: animations,
 	}
+}
+
+func (c *Component) Clone() entity.IComponent {
+	x := *c
+	return &x
 }

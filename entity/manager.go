@@ -1,14 +1,20 @@
 package entity
 
+import (
+	"github.com/brynbellomy/gl4-game/systems/assetsys"
+)
+
 type (
 	Manager struct {
-		entities []Entity
-		systems  []ISystem
-		factory  *Factory
+		entities      []Entity
+		systems       []ISystem
+		templateCache *TemplateCache
+		entityFactory *EntityFactory
 
 		cullable []ID
 
 		idCounter ID
+		usedIDs   map[ID]bool
 	}
 
 	Entity struct {
@@ -17,12 +23,17 @@ type (
 	}
 )
 
-func NewManager(systems []ISystem) *Manager {
+func NewManager(fs assetsys.IFilesystem, systems []ISystem) *Manager {
+	entityFactory := NewEntityFactory()
+	templateCache := NewTemplateCache(fs, entityFactory)
+
 	m := &Manager{
-		systems:  systems,
-		entities: []Entity{},
-		cullable: []ID{},
-		factory:  NewFactory(),
+		systems:       systems,
+		entities:      []Entity{},
+		cullable:      []ID{},
+		entityFactory: entityFactory,
+		templateCache: templateCache,
+		usedIDs:       map[ID]bool{},
 	}
 
 	for _, sys := range systems {
@@ -32,37 +43,45 @@ func NewManager(systems []ISystem) *Manager {
 	return m
 }
 
-func (m *Manager) NewEntityID() ID {
-	cur := m.idCounter
-	m.idCounter++
-	return cur
+func (m *Manager) newEntityID() ID {
+	for id := m.idCounter; ; id++ {
+		if m.usedIDs[id] == false {
+			m.usedIDs[id] = true
+			m.idCounter = id + 1
+			return id
+		}
+	}
 }
 
-func (m *Manager) RegisterEntityTemplate(name string, cmpts []IComponent) {
-	m.factory.RegisterEntityTemplate(name, cmpts)
+func (m *Manager) setIDUsed(eid ID) {
+	m.usedIDs[eid] = true
+	if m.idCounter <= eid {
+		m.idCounter = eid + 1
+	}
 }
 
-func (m *Manager) RegisterComponentType(typeName string, cmpt IComponent, initer IComponentIniter) {
-	m.factory.RegisterComponentType(typeName, cmpt, initer)
+func (m *Manager) RegisterComponentType(typeName string, cmpt IComponent) {
+	m.entityFactory.RegisterComponentType(typeName, cmpt)
+}
+
+func (m *Manager) EntityFromTemplate(name string) (ID, []IComponent, error) {
+	eid := m.newEntityID()
+
+	ent, err := m.templateCache.Load(name)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return eid, ent, nil
 }
 
 func (m *Manager) EntityFromConfig(config map[string]interface{}) (ID, []IComponent, error) {
-	return m.factory.EntityFromConfig(config)
+	return m.entityFactory.EntityFromConfig(config)
 }
-
-// func (m *Manager) AddEntityFromConfig(config map[string]interface{}) error {
-// 	eid, cmpts, err := m.factory.EntityFromConfig(config)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	m.AddComponents(eid, cmpts)
-
-// 	return nil
-// }
 
 func (m *Manager) AddComponents(eid ID, components []IComponent) {
 	m.entities = append(m.entities, Entity{ID: eid, Components: components})
+	m.setIDUsed(eid)
 
 	for _, sys := range m.systems {
 		sys.ComponentsWillJoin(eid, components)

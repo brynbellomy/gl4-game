@@ -2,30 +2,29 @@ package shader
 
 import (
 	"fmt"
+	"io/ioutil"
 	"sync"
+
+	"github.com/brynbellomy/gl4-game/systems/assetsys"
 )
-
-// var globalShaderCache = NewShaderCache()
-
-// func LoadShader(filename string, shaderType ShaderType) (Shader, error) {
-// 	return globalShaderCache.LoadShader(filename, shaderType)
-// }
 
 type (
 	ShaderCache struct {
 		mutex   sync.RWMutex
 		shaders map[string]Shader
+		fs      assetsys.IFilesystem
 	}
 )
 
-func NewShaderCache() *ShaderCache {
+func NewShaderCache(fs assetsys.IFilesystem) *ShaderCache {
 	return &ShaderCache{
 		mutex:   sync.RWMutex{},
 		shaders: map[string]Shader{},
+		fs:      fs,
 	}
 }
 
-func (c *ShaderCache) LoadShader(filename string, shaderType ShaderType) (Shader, error) {
+func (c *ShaderCache) Load(filename string, shaderType ShaderType) (Shader, error) {
 	fmt.Println("shader cache: loading", filename)
 
 	c.mutex.RLock()
@@ -39,11 +38,27 @@ func (c *ShaderCache) LoadShader(filename string, shaderType ShaderType) (Shader
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	shader, err := NewShader(filename, shaderType)
+	shader, err := c.loadShader(filename, shaderType)
 	if err != nil {
 		return 0, err
 	}
 
 	c.shaders[filename] = shader
 	return shader, nil
+}
+
+func (c *ShaderCache) loadShader(filename string, shaderType ShaderType) (Shader, error) {
+	f, err := c.fs.OpenFile(filename, 0, 0400)
+	if err != nil {
+		return 0, err
+	}
+
+	bytes, err := ioutil.ReadAll(f)
+	if err != nil {
+		return 0, err
+	}
+
+	bytes = append(bytes, '\x00')
+
+	return compileShader(string(bytes), shaderType)
 }

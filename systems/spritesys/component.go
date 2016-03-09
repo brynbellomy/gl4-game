@@ -1,5 +1,9 @@
 package spritesys
 
+import (
+	"github.com/brynbellomy/gl4-game/entity"
+)
+
 type (
 	Component struct {
 		TextureName     string `config:"texture"`
@@ -26,4 +30,9 @@ func (c *Component) GetTextureName() string {
 
 func (c *Component) SetTextureName(tex string) {
 	c.TextureName = tex
+}
+
+func (c *Component) Clone() entity.IComponent {
+	x := *c
+	return &x
 }

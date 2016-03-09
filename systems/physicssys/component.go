@@ -1,6 +1,10 @@
 package physicssys
 
-import "github.com/go-gl/mathgl/mgl32"
+import (
+	"github.com/go-gl/mathgl/mgl32"
+
+	"github.com/brynbellomy/gl4-game/entity"
+)
 
 type (
 	Component struct {
@@ -79,4 +83,9 @@ func (c *Component) ResetCollisions() {
 
 func (c *Component) GetBoundingBox() BoundingBox {
 	return c.BoundingBox
+}
+
+func (c *Component) Clone() entity.IComponent {
+	x := *c
+	return &x
 }

@@ -1,12 +1,16 @@
 package projectilesys
 
-import "github.com/go-gl/mathgl/mgl32"
+import (
+	"github.com/go-gl/mathgl/mgl32"
+
+	"github.com/brynbellomy/gl4-game/entity"
+)
 
 type (
 	Component struct {
 		Heading         mgl32.Vec2      `config:"heading"`
 		ExitVelocity    float32         `config:"exitVelocity"`
-		Thrust          float32         `config:"thrust`
+		Thrust          float32         `config:"thrust"`
 		State           ProjectileState `config:"state"`
 		RemoveOnContact bool            `config:"removeOnContact"`
 	}
@@ -30,4 +34,9 @@ func (c *Component) GetHeading() mgl32.Vec2 {
 
 func (c *Component) SetHeading(heading mgl32.Vec2) {
 	c.Heading = heading
+}
+
+func (c *Component) Clone() entity.IComponent {
+	x := *c
+	return &x
 }

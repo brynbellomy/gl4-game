@@ -13,10 +13,9 @@ import (
 )
 
 type TextureCache struct {
-	mutex     sync.RWMutex
-	textures  map[string]uint32
-	assetRoot string
-	fs        assetsys.IFilesystem
+	mutex    sync.RWMutex
+	textures map[string]uint32
+	fs       assetsys.IFilesystem
 }
 
 func NewTextureCache(fs assetsys.IFilesystem) *TextureCache {
@@ -42,7 +41,7 @@ func (c *TextureCache) Load(filename string) (uint32, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	t, err := c.newTexture(filename)
+	t, err := c.loadTexture(filename)
 	if err != nil {
 		return 0, err
 	}
@@ -51,7 +50,7 @@ func (c *TextureCache) Load(filename string) (uint32, error) {
 	return t, nil
 }
 
-func (c *TextureCache) newTexture(file string) (uint32, error) {
+func (c *TextureCache) loadTexture(file string) (uint32, error) {
 	imgFile, err := c.fs.OpenFile(file, 0, 0400)
 	if err != nil {
 		return 0, err

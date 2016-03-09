@@ -14,7 +14,9 @@ type (
 
 	ID int64
 
-	IComponent interface{}
+	IComponent interface {
+		Clone() IComponent
+	}
 )
 
 const InvalidID ID = -1

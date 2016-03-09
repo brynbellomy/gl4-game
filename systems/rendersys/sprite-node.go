@@ -28,7 +28,7 @@ func (f *SpriteNodeFactory) NodeFromConfig(config map[string]interface{}) (INode
 		return nil, errors.New("missing required key 'fragment-shader' (or wrong type)")
 	}
 
-	program, err := f.shaderProgramCache.LoadProgram(vertex, fragment)
+	program, err := f.shaderProgramCache.Load(vertex, fragment)
 	if err != nil {
 		return nil, err
 	}

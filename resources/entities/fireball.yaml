@@ -19,8 +19,8 @@ components:
     config:
         nodeType: sprite
         nodeConfig:
-            vertex-shader: shaders/fireball.vertex.glsl
-            fragment-shader: shaders/fireball.fragment.glsl
+            vertex-shader:   fireball.vertex.glsl
+            fragment-shader: fireball.fragment.glsl
 -   type: animation
     config:
         atlasName: fireball
