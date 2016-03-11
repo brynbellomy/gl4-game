@@ -11,6 +11,8 @@ type (
 
 		NodeType   string                 `config:"nodeType"`
 		NodeConfig map[string]interface{} `config:"nodeConfig"`
+
+		entity.ComponentKind `config:"-"`
 	}
 )
 

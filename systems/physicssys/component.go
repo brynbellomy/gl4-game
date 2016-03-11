@@ -17,6 +17,8 @@ type (
 		Collisions    []Collision `config:"collisions"`
 		CollisionMask uint64      `config:"collisionMask"`
 		CollidesWith  uint64      `config:"collidesWith"`
+
+		entity.ComponentKind `config:"-"`
 	}
 )
 

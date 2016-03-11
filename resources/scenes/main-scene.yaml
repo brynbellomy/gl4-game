@@ -1,7 +1,11 @@
 ---
 entities:
-    -   name: bg
-        id: 0
+
+    #
+    # background
+    #
+
+    -   id: 0
         components:
         -   type: position
             config:
@@ -20,10 +24,15 @@ entities:
                 texture: square.png
 
 
+    #
+    # hero
+    #
 
-    -   name: hero
-        id: 1
+    -   id: 1
         components:
+        -   type: tag
+            config:
+                tag: hero
         -   type: position
             config:
                 pos: [0, 0]
@@ -68,8 +77,11 @@ entities:
 
 
 
-    -   name: skeleton
-        id: 2
+    #
+    # skeleton
+    #
+
+    -   id: 2
         components:
         -   type: position
             config:

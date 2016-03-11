@@ -6,7 +6,7 @@ import (
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
 	"github.com/brynbellomy/gl4-game/systems/animationsys"
-	"github.com/brynbellomy/gl4-game/systems/physicssys"
+	"github.com/brynbellomy/gl4-game/systems/movesys"
 )
 
 type (
@@ -19,7 +19,7 @@ type (
 		id            entity.ID
 		gameobjCmpt   *Component
 		animationCmpt *animationsys.Component
-		physicsCmpt   *physicssys.Component
+		moveCmpt      *movesys.Component
 	}
 )
 
@@ -33,9 +33,10 @@ func New() *System {
 func (s *System) Update(t common.Time) {
 	for _, e := range s.entities {
 		cmpt := e.gameobjCmpt
-		vel := e.physicsCmpt.GetVelocity().Add(e.physicsCmpt.GetInstantaneousVelocity())
+		// vel := e.moveCmpt.GetVelocity().Add(e.moveCmpt.GetInstantaneousVelocity())
+		vel := e.moveCmpt.Vector()
 
-		if vel.Len() > 0.01 {
+		if vel.Len() > 0 {
 			radians := math.Atan2(float64(vel.Y()), float64(vel.X()))
 
 			cmpt.Direction = DirectionFromRadians(radians)
@@ -54,13 +55,19 @@ func (s *System) Update(t common.Time) {
 	}
 }
 
-func (s *System) WillJoinManager(em *entity.Manager) {
-	em.RegisterComponentType("gameobj", &Component{})
+func (s *System) ComponentTypes() map[string]entity.IComponent {
+	return map[string]entity.IComponent{
+		"gameobj": &Component{},
+	}
 }
 
-func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {
+func (s *System) WillJoinManager(em *entity.Manager) {
+	// em.RegisterComponentType("gameobj", &Component{})
+}
+
+func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
 	var gameobjCmpt *Component
-	var physicsCmpt *physicssys.Component
+	var moveCmpt *movesys.Component
 	var animationCmpt *animationsys.Component
 
 	for _, cmpt := range components {
@@ -68,54 +75,67 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 			gameobjCmpt = ac
 		} else if rc, is := cmpt.(*animationsys.Component); is {
 			animationCmpt = rc
-		} else if pc, is := cmpt.(*physicssys.Component); is {
-			physicsCmpt = pc
+		} else if pc, is := cmpt.(*movesys.Component); is {
+			moveCmpt = pc
 		}
 
-		if gameobjCmpt != nil && animationCmpt != nil && physicsCmpt != nil {
+		if gameobjCmpt != nil && animationCmpt != nil && moveCmpt != nil {
 			break
 		}
 	}
 
-	if gameobjCmpt != nil {
-		if animationCmpt == nil {
-			panic("gameobj component requires animation component")
-		} else if physicsCmpt == nil {
-			panic("gameobj component requires physics component")
+	if gameobjCmpt != nil && animationCmpt != nil && moveCmpt != nil {
+		if _, exists := s.entityMap[eid]; !exists {
+			s.entities = append(s.entities, entityAspect{
+				id:            eid,
+				gameobjCmpt:   gameobjCmpt,
+				animationCmpt: animationCmpt,
+				moveCmpt:      moveCmpt,
+			})
+
+			s.entityMap[eid] = &s.entities[len(s.entities)-1]
 		}
 
-		s.entities = append(s.entities, entityAspect{
-			id:            eid,
-			gameobjCmpt:   gameobjCmpt,
-			animationCmpt: animationCmpt,
-			physicsCmpt:   physicsCmpt,
-		})
-
-		s.entityMap[eid] = &s.entities[len(s.entities)-1]
-	}
-}
-
-func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
-	remove := false
-	for _, cmpt := range components {
-		switch cmpt.(type) {
-		case *Component, *animationsys.Component, *physicssys.Component:
-			remove = true
-			break
-		}
-	}
-
-	if remove {
-		removedIdx := -1
-		for i := range s.entities {
-			if s.entities[i].id == eid {
-				removedIdx = i
-				break
+	} else {
+		if _, exists := s.entityMap[eid]; exists {
+			idx := -1
+			for i := range s.entities {
+				if s.entities[i].id == eid {
+					idx = i
+					break
+				}
 			}
+
+			if idx >= 0 {
+				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
+			}
+
+			delete(s.entityMap, eid)
 		}
-		if removedIdx >= 0 {
-			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
-		}
-		delete(s.entityMap, eid)
 	}
 }
+
+// func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
+// 	remove := false
+// 	for _, cmpt := range components {
+// 		switch cmpt.(type) {
+// 		case *Component, *animationsys.Component, *movesys.Component:
+// 			remove = true
+// 			break
+// 		}
+// 	}
+
+// 	if remove {
+// 		removedIdx := -1
+// 		for i := range s.entities {
+// 			if s.entities[i].id == eid {
+// 				removedIdx = i
+// 				break
+// 			}
+// 		}
+// 		if removedIdx >= 0 {
+// 			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
+// 		}
+// 		delete(s.entityMap, eid)
+// 	}
+// }

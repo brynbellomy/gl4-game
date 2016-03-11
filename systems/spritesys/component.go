@@ -9,11 +9,17 @@ type (
 		TextureName     string `config:"texture"`
 		IsTextureLoaded bool   `config:"-"`
 		Texture         uint32 `config:"-"`
+
+		entity.ComponentKind `config:"-"`
 	}
 )
 
 func NewComponent(textureName string) *Component {
-	return &Component{textureName, false, 0}
+	return &Component{
+		TextureName:     textureName,
+		IsTextureLoaded: false,
+		Texture:         0,
+	}
 }
 
 func (c *Component) GetTexture() uint32 {

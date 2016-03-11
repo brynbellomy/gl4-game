@@ -9,6 +9,8 @@ import (
 type (
 	Component struct {
 		Vec mgl32.Vec2 `config:"vector"`
+
+		entity.ComponentKind `config:"-"`
 	}
 )
 

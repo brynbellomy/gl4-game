@@ -1,6 +1,7 @@
 package mainscene
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/brynbellomy/gl4-game/systems/rendersys/shader"
 	"github.com/brynbellomy/gl4-game/systems/rendersys/texture"
 	"github.com/brynbellomy/gl4-game/systems/spritesys"
+	"github.com/brynbellomy/gl4-game/systems/tagsys"
 )
 
 type (
@@ -30,11 +32,12 @@ type (
 		window     *glfw.Window
 		projection mgl32.Mat4
 
-		assetRoot     string
-		entityManager *entity.Manager
+		assetRoot   string
+		sceneSubdir assetsys.IFilesystem
 
-		heroID   entity.ID
-		cameraID entity.ID
+		entityManager *entity.Manager
+		heroID        entity.ID
+		cameraID      entity.ID
 
 		inputSystem  *inputsys.System
 		inputHandler *InputHandler
@@ -44,6 +47,7 @@ type (
 		textureAtlasCache  *texture.AtlasCache
 		shaderProgramCache *shader.ProgramCache
 
+		tagSystem        *tagsys.System
 		positionSystem   *positionsys.System
 		physicsSystem    *physicssys.System
 		renderSystem     *rendersys.System
@@ -57,6 +61,11 @@ type (
 
 func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 	assetSystem := assetsys.New(assetsys.NewDefaultFilesystem(assetRoot))
+
+	sceneSubdir, err := assetSystem.Filesystem().Subdir("scenes")
+	if err != nil {
+		return nil, err
+	}
 
 	textureSubdir, err := assetSystem.Filesystem().Subdir("textures")
 	if err != nil {
@@ -81,6 +90,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 	)
 
 	var (
+		tagSystem        = tagsys.New()
 		positionSystem   = positionsys.New()
 		physicsSystem    = physicssys.New()
 		renderSystem     = rendersys.New(shaderProgramCache)
@@ -99,6 +109,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 
 	var (
 		entityManager = entity.NewManager(entitySubdir, []entity.ISystem{
+			tagSystem,
 			positionSystem,
 			physicsSystem,
 			renderSystem,
@@ -112,9 +123,12 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		mainScene = &MainScene{
 			window: window,
 
-			assetRoot:     assetRoot,
+			assetRoot:   assetRoot,
+			sceneSubdir: sceneSubdir,
+
 			entityManager: entityManager,
 
+			tagSystem:        tagSystem,
 			positionSystem:   positionSystem,
 			physicsSystem:    physicsSystem,
 			renderSystem:     renderSystem,
@@ -143,7 +157,32 @@ func (s *MainScene) Prepare() error {
 	s.projection = mgl32.Perspective(mgl32.DegToRad(45.0), float32(ww)/float32(wh), 0.1, 10.0)
 	s.renderSystem.SetProjection(s.projection)
 
-	file, err := s.assetSystem.Filesystem().OpenFile("scenes/main-scene.yaml", 0, 0400)
+	err := s.loadScene()
+	if err != nil {
+		return err
+	}
+
+	heroID, exists := s.tagSystem.EntityWithTag("hero")
+	if !exists {
+		return errors.New("error loading scene: no entity found with 'hero' tag")
+	}
+
+	s.heroID = heroID
+	s.cameraID = s.heroID
+
+	s.inputSystem.BecomeInputResponder(s.window)
+	s.inputSystem.SetControlledEntity(s.heroID)
+	s.inputHandler.onFireWeapon = s.onFireWeapon
+
+	s.physicsSystem.OnCollision(func(c physicssys.Collision) {
+		fmt.Printf("collision ~> %+v\n", c)
+	})
+
+	return nil
+}
+
+func (s *MainScene) loadScene() error {
+	file, err := s.sceneSubdir.OpenFile("main-scene.yaml", 0, 0400)
 	if err != nil {
 		return err
 	}
@@ -163,25 +202,15 @@ func (s *MainScene) Prepare() error {
 		return err
 	}
 
+	// deserialize all entities and add them to the scene
 	for _, ent := range sceneData.Entities {
 		eid, cmpts, err := s.entityManager.EntityFromConfig(ent)
 		if err != nil {
 			return err
 		}
 
-		s.entityManager.AddComponents(eid, cmpts)
+		s.entityManager.SetComponents(eid, cmpts)
 	}
-
-	s.heroID = entity.ID(1)
-	s.cameraID = s.heroID
-
-	s.inputSystem.BecomeInputResponder(s.window)
-	s.inputSystem.SetControlledEntity(s.heroID)
-	s.inputHandler.onFireWeapon = s.onFireWeapon
-
-	s.physicsSystem.OnCollision(func(c physicssys.Collision) {
-		fmt.Printf("collision ~> %+v\n", c)
-	})
 
 	return nil
 }
@@ -254,7 +283,7 @@ func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon)
 		}
 	}
 
-	s.entityManager.AddComponents(eid, cmpts)
+	s.entityManager.SetComponents(eid, cmpts)
 }
 
 func (s *MainScene) Update() {

@@ -87,12 +87,18 @@ func (s *System) Update(t common.Time) {
 	}
 }
 
-func (s *System) WillJoinManager(em *entity.Manager) {
-	s.entityManager = em
-	em.RegisterComponentType("projectile", &Component{})
+func (s *System) ComponentTypes() map[string]entity.IComponent {
+	return map[string]entity.IComponent{
+		"projectile": &Component{},
+	}
 }
 
-func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {
+func (s *System) WillJoinManager(em *entity.Manager) {
+	s.entityManager = em
+	// em.RegisterComponentType("projectile", &Component{})
+}
+
+func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
 	var projectileCmpt *Component
 	var moveCmpt *movesys.Component
 	var positionCmpt *positionsys.Component
@@ -114,48 +120,59 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 		}
 	}
 
-	if projectileCmpt != nil {
-		if positionCmpt == nil {
-			panic("projectile component requires position component")
-		} else if moveCmpt == nil {
-			panic("projectile component requires move component")
-		} else if physicsCmpt == nil {
-			panic("projectile component requires physics component")
+	if projectileCmpt != nil && positionCmpt != nil && moveCmpt != nil {
+		if _, exists := s.entityMap[eid]; !exists {
+			s.entities = append(s.entities, entityAspect{
+				id:             eid,
+				projectileCmpt: projectileCmpt,
+				positionCmpt:   positionCmpt,
+				moveCmpt:       moveCmpt,
+				physicsCmpt:    physicsCmpt,
+			})
+
+			s.entityMap[eid] = &s.entities[len(s.entities)-1]
 		}
 
-		s.entities = append(s.entities, entityAspect{
-			id:             eid,
-			projectileCmpt: projectileCmpt,
-			positionCmpt:   positionCmpt,
-			moveCmpt:       moveCmpt,
-			physicsCmpt:    physicsCmpt,
-		})
-
-		s.entityMap[eid] = &s.entities[len(s.entities)-1]
-	}
-}
-
-func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
-	remove := false
-	for _, cmpt := range components {
-		switch cmpt.(type) {
-		case *Component, *movesys.Component, *positionsys.Component, *physicssys.Component:
-			remove = true
-			break
-		}
-	}
-
-	if remove {
-		removedIdx := -1
-		for i := range s.entities {
-			if s.entities[i].id == eid {
-				removedIdx = i
-				break
+	} else {
+		if _, exists := s.entityMap[eid]; exists {
+			idx := -1
+			for i := range s.entities {
+				if s.entities[i].id == eid {
+					idx = i
+					break
+				}
 			}
+
+			if idx >= 0 {
+				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
+			}
+
+			delete(s.entityMap, eid)
 		}
-		if removedIdx >= 0 {
-			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
-		}
-		delete(s.entityMap, eid)
 	}
 }
+
+// func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
+// 	remove := false
+// 	for _, cmpt := range components {
+// 		switch cmpt.(type) {
+// 		case *Component, *movesys.Component, *positionsys.Component, *physicssys.Component:
+// 			remove = true
+// 			break
+// 		}
+// 	}
+
+// 	if remove {
+// 		removedIdx := -1
+// 		for i := range s.entities {
+// 			if s.entities[i].id == eid {
+// 				removedIdx = i
+// 				break
+// 			}
+// 		}
+// 		if removedIdx >= 0 {
+// 			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
+// 		}
+// 		delete(s.entityMap, eid)
+// 	}
+// }

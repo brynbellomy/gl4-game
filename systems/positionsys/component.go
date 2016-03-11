@@ -13,6 +13,8 @@ type (
 		Size     common.Size `config:"size"`
 		Rotation float32     `config:"rotation"`
 		ZIndex   int         `config:"z-index"`
+
+		entity.ComponentKind `config:"-"`
 	}
 )
 

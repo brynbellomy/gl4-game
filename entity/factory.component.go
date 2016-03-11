@@ -8,30 +8,20 @@ import (
 
 type (
 	ComponentFactory struct {
-		componentTypes map[string]cmptType
+		componentRegistry *ComponentRegistry
 	}
 
 	componentConfig struct {
 		Type   string                 `config:"type"`
 		Config map[string]interface{} `config:"config"`
 	}
-
-	cmptType struct {
-		z *structomancer.Structomancer
-	}
 )
 
 var componentConfigType = structomancer.New(&componentConfig{}, "config")
 
-func NewComponentFactory() *ComponentFactory {
+func NewComponentFactory(componentRegistry *ComponentRegistry) *ComponentFactory {
 	return &ComponentFactory{
-		componentTypes: map[string]cmptType{},
-	}
-}
-
-func (f *ComponentFactory) RegisterComponentType(typeName string, cmpt IComponent) {
-	f.componentTypes[typeName] = cmptType{
-		z: structomancer.New(cmpt, "config"),
+		componentRegistry: componentRegistry,
 	}
 }
 
@@ -48,15 +38,17 @@ func (f *ComponentFactory) ComponentFromConfig(cmptcfg map[string]interface{}) (
 		return nil, errors.New("missing 'config' key")
 	}
 
-	ctype, exists := f.componentTypes[cfg.Type]
+	ctype, exists := f.componentRegistry.GetComponentType(cfg.Type)
 	if !exists {
 		return nil, errors.New("component type '" + cfg.Type + "' is not registered")
 	}
 
-	cmpt, err := ctype.z.MapToStruct(cfg.Config)
+	cmpt, err := ctype.DeserializeConfig(cfg.Config)
 	if err != nil {
 		return nil, errors.New("error deserializing component (type = " + cfg.Type + ")" + err.Error())
 	}
+
+	cmpt.(IComponent).SetKind(ctype.kind)
 
 	return cmpt.(IComponent), nil
 }

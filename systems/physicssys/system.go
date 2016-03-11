@@ -164,11 +164,17 @@ func (s *System) checkCollision(entA, entB entityAspect) bool {
 	return true
 }
 
-func (s *System) WillJoinManager(em *entity.Manager) {
-	em.RegisterComponentType("physics", &Component{})
+func (s *System) ComponentTypes() map[string]entity.IComponent {
+	return map[string]entity.IComponent{
+		"physics": &Component{},
+	}
 }
 
-func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {
+func (s *System) WillJoinManager(em *entity.Manager) {
+	// em.RegisterComponentType("physics", &Component{})
+}
+
+func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
 	var physicsCmpt *Component
 	var positionCmpt *positionsys.Component
 
@@ -184,18 +190,33 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 		}
 	}
 
-	if physicsCmpt != nil {
-		if positionCmpt == nil {
-			panic("physics component requires position component")
+	if physicsCmpt != nil && positionCmpt != nil {
+		if _, exists := s.entityMap[eid]; !exists {
+			s.entities = append(s.entities, entityAspect{
+				id:           eid,
+				physicsCmpt:  physicsCmpt,
+				positionCmpt: positionCmpt,
+			})
+
+			s.entityMap[eid] = &s.entities[len(s.entities)-1]
 		}
 
-		s.entities = append(s.entities, entityAspect{
-			id:           eid,
-			physicsCmpt:  physicsCmpt,
-			positionCmpt: positionCmpt,
-		})
+	} else {
+		if _, exists := s.entityMap[eid]; exists {
+			idx := -1
+			for i := range s.entities {
+				if s.entities[i].id == eid {
+					idx = i
+					break
+				}
+			}
 
-		s.entityMap[eid] = &s.entities[len(s.entities)-1]
+			if idx >= 0 {
+				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
+			}
+
+			delete(s.entityMap, eid)
+		}
 	}
 }
 

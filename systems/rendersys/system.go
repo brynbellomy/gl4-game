@@ -65,11 +65,17 @@ func (s *System) Update(t common.Time) {
 	}
 }
 
-func (s *System) WillJoinManager(em *entity.Manager) {
-	em.RegisterComponentType("render", &Component{})
+func (s *System) ComponentTypes() map[string]entity.IComponent {
+	return map[string]entity.IComponent{
+		"render": &Component{},
+	}
 }
 
-func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {
+func (s *System) WillJoinManager(em *entity.Manager) {
+	// em.RegisterComponentType("render", &Component{})
+}
+
+func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
 	var positionCmpt *positionsys.Component
 	var renderCmpt *Component
 
@@ -85,55 +91,42 @@ func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponen
 		}
 	}
 
-	if renderCmpt != nil {
-		if positionCmpt == nil {
-			panic("render component requires position component")
-		}
-
-		// initialize the render node on the `renderCmpt`
-		node, err := s.nodeFactory.NodeFromConfig(renderCmpt.NodeType, renderCmpt.NodeConfig)
-		if err != nil {
-			// @@TODO
-			panic(err.Error())
-		}
-
-		renderCmpt.renderNode = node
-
-		s.entities = append(s.entities, entityAspect{
-			id:           eid,
-			positionCmpt: positionCmpt,
-			renderCmpt:   renderCmpt,
-		})
-
-		s.entityMap[eid] = &s.entities[len(s.entities)-1]
-	}
-
-	// sort entities by z-index every time entity/component list changes
-	sort.Sort(sortableEntities(s.entities))
-}
-
-func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
-	remove := false
-	for _, cmpt := range components {
-		switch cmpt.(type) {
-		case *Component, *positionsys.Component:
-			remove = true
-			break
-		}
-	}
-
-	if remove {
-		removedIdx := -1
-		for i := range s.entities {
-			if s.entities[i].id == eid {
-				removedIdx = i
-				break
+	if renderCmpt != nil && positionCmpt != nil {
+		if _, exists := s.entityMap[eid]; !exists {
+			// initialize the render node on the `renderCmpt`
+			node, err := s.nodeFactory.NodeFromConfig(renderCmpt.NodeType, renderCmpt.NodeConfig)
+			if err != nil {
+				// @@TODO
+				panic(err.Error())
 			}
+
+			renderCmpt.renderNode = node
+
+			s.entities = append(s.entities, entityAspect{
+				id:           eid,
+				positionCmpt: positionCmpt,
+				renderCmpt:   renderCmpt,
+			})
+
+			s.entityMap[eid] = &s.entities[len(s.entities)-1]
 		}
-		if removedIdx >= 0 {
-			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
+
+	} else {
+		if _, exists := s.entityMap[eid]; exists {
+			idx := -1
+			for i := range s.entities {
+				if s.entities[i].id == eid {
+					idx = i
+					break
+				}
+			}
+
+			if idx >= 0 {
+				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
+			}
+
+			delete(s.entityMap, eid)
 		}
-		delete(s.entityMap, eid)
 	}
 
 	// sort entities by z-index every time entity/component list changes

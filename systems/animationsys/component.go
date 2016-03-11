@@ -13,6 +13,8 @@ type (
 		CurrentIndex   int         `config:"currentIndex"`
 		AnimationStart common.Time `config:"-"`
 		FPS            int         `config:"fps"`
+
+		entity.ComponentKind `config:"-"`
 	}
 )
 

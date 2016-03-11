@@ -53,7 +53,7 @@ func (s *System) Update(c context.IContext) {
 	}
 }
 
-func (s *System) ComponentsWillJoin(eid entity.ID, components []entity.IComponent) {
+func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
 	var positionCmpt *positionsys.Component
 	var steeringCmpt *Component
 

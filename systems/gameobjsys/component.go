@@ -9,6 +9,8 @@ type (
 		Action     Action                          `config:"action"`
 		Direction  Direction                       `config:"direction"`
 		Animations map[Action]map[Direction]string `config:"animations"`
+
+		entity.ComponentKind `config:"-"`
 	}
 )
 

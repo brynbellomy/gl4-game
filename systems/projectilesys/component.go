@@ -13,6 +13,8 @@ type (
 		Thrust          float32         `config:"thrust"`
 		State           ProjectileState `config:"state"`
 		RemoveOnContact bool            `config:"removeOnContact"`
+
+		entity.ComponentKind `config:"-"`
 	}
 
 	ProjectileState int

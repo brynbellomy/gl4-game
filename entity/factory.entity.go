@@ -19,15 +19,15 @@ type (
 
 var entityConfigType = structomancer.New(&entityConfig{}, "config")
 
-func NewEntityFactory() *EntityFactory {
+func NewEntityFactory(cmptRegistry *ComponentRegistry) *EntityFactory {
 	return &EntityFactory{
-		cmptFactory: NewComponentFactory(),
+		cmptFactory: NewComponentFactory(cmptRegistry),
 	}
 }
 
-func (f *EntityFactory) RegisterComponentType(typeName string, cmpt IComponent) {
-	f.cmptFactory.RegisterComponentType(typeName, cmpt)
-}
+// func (f *EntityFactory) RegisterComponentType(typeName string, cmpt IComponent) {
+// 	f.cmptFactory.RegisterComponentType(typeName, cmpt)
+// }
 
 func (f *EntityFactory) EntityFromConfig(cfg map[string]interface{}) (ID, []IComponent, error) {
 	c, err := entityConfigType.MapToStruct(cfg)
