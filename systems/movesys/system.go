@@ -10,8 +10,10 @@ import (
 
 type (
 	System struct {
-		entities  []entityAspect
-		entityMap map[entity.ID]*entityAspect
+		// entities  []entityAspect
+		// entityMap map[entity.ID]*entityAspect
+		entityManager  *entity.Manager
+		componentQuery entity.ComponentMask
 	}
 
 	entityAspect struct {
@@ -23,17 +25,34 @@ type (
 
 func New() *System {
 	return &System{
-		entities:  make([]entityAspect, 0),
-		entityMap: make(map[entity.ID]*entityAspect),
+	// entities:  make([]entityAspect, 0),
+	// entityMap: make(map[entity.ID]*entityAspect),
 	}
 }
 
 func (s *System) Update(t common.Time) {
-	for _, e := range s.entities {
-		vec := e.moveCmpt.Vector()
-		e.physicsCmpt.SetInstantaneousVelocity(vec)
-		// e.moveCmpt.ResetVector()
+	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
+	moveCmpts := s.entityManager.GetComponentSet("move").Visitor(matchIDs)
+	physicsCmpts := s.entityManager.GetComponentSet("physics").Visitor(matchIDs)
+
+	for i := 0; i < moveCmpts.Len(); i++ {
+		moveCmpt := moveCmpts.Get().(*Component)
+		physicsCmpt := physicsCmpts.Get().(*physicssys.Component)
+
+		physicsCmpt.SetInstantaneousVelocity(moveCmpt.Vector())
+
+		moveCmpts.Set(moveCmpt)
+		physicsCmpts.Set(physicsCmpt)
+
+		moveCmpts.Advance()
+		physicsCmpts.Advance()
 	}
+
+	// for _, e := range s.entities {
+	// 	vec := e.moveCmpt.Vector()
+	// 	e.physicsCmpt.SetInstantaneousVelocity(vec)
+	// 	// e.moveCmpt.ResetVector()
+	// }
 }
 
 func (s *System) SetMovementVector(eid entity.ID, vec mgl32.Vec2) {
@@ -52,6 +71,8 @@ func (s *System) ComponentTypes() map[string]entity.IComponent {
 
 func (s *System) WillJoinManager(em *entity.Manager) {
 	// em.RegisterComponentType("move", &Component{})
+	s.entityManager = em
+	s.componentQuery = em.MakeCmptQuery([]string{"move", "physics"})
 }
 
 func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {

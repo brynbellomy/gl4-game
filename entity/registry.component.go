@@ -7,7 +7,7 @@ import (
 type (
 	ComponentRegistry struct {
 		componentTypes map[string]CmptType
-		kindCounter    uint
+		kindCounter    uint64
 	}
 
 	CmptType struct {
@@ -25,7 +25,7 @@ func NewComponentRegistry() *ComponentRegistry {
 }
 
 func (r *ComponentRegistry) nextComponentKind() ComponentKind {
-	next := 1 << r.kindCounter
+	next := r.kindCounter //1 << r.kindCounter
 	r.kindCounter++
 	if r.kindCounter == 64 {
 		panic("entity.ComponentFactory: maximum number of component kinds exceeded (64)")

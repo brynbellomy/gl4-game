@@ -9,8 +9,9 @@ import (
 
 type (
 	Manager struct {
-		systems  []ISystem
-		entities []Entity
+		systems       []ISystem
+		entities      []Entity
+		componentSets map[ComponentKind]IComponentSet
 
 		templateCache *TemplateCache
 		entityFactory *EntityFactory
@@ -23,9 +24,9 @@ type (
 	}
 
 	Entity struct {
-		ID           ID
-		ComponentSet ComponentSet
-		Components   []IComponent
+		ID            ID
+		ComponentMask ComponentMask
+		Components    []IComponent
 	}
 )
 
@@ -69,14 +70,27 @@ func (m *Manager) newEntityID() ID {
 }
 
 func (m *Manager) setIDUsed(eid ID) {
+	if m.usedIDs[eid] == true {
+		panic("entity.Manager.setIDUsed: id already in use")
+	}
 	m.usedIDs[eid] = true
 	if m.idCounter <= eid {
 		m.idCounter = eid + 1
 	}
 }
 
-func (m *Manager) MakeCmptQuery(cmptTypes []string) (ComponentSet, error) {
-	var cmptQuery ComponentSet
+func (m *Manager) EntitiesMatching(cmptMask ComponentMask) []ID {
+	matching := make([]ID, 0)
+	for _, ent := range m.entities {
+		if ent.ComponentMask.HasAll(cmptMask) {
+			matching = append(matching, ent.ID)
+		}
+	}
+	return matching
+}
+
+func (m *Manager) MakeCmptQuery(cmptTypes []string) (ComponentMask, error) {
+	var cmptQuery ComponentMask
 	for _, typeName := range cmptTypes {
 		t, exists := m.cmptRegistry.GetComponentType(typeName)
 		if !exists {
@@ -119,12 +133,12 @@ func (m *Manager) EntityFromConfig(config map[string]interface{}) (ID, []ICompon
 }
 
 func (m *Manager) SetComponents(eid ID, components []IComponent) {
-	var mask ComponentSet
+	var mask ComponentMask
 	for _, cmpt := range components {
 		mask = mask.Add(cmpt.Kind())
 	}
 
-	ent := Entity{ID: eid, ComponentSet: mask, Components: components}
+	ent := Entity{ID: eid, ComponentMask: mask, Components: components}
 
 	m.entities = append(m.entities, ent)
 	m.setIDUsed(eid)

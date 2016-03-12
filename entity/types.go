@@ -25,10 +25,18 @@ type (
 
 const InvalidID ID = -1
 
-func (k *ComponentKind) Kind() ComponentKind {
-	return *k
+func (k ComponentKind) Kind() ComponentKind {
+	return k
 }
 
 func (k *ComponentKind) SetKind(newKind ComponentKind) {
 	*k = newKind
+}
+
+func (k ComponentKind) KindIndex() int {
+	return int(k)
+}
+
+func (k ComponentKind) KindMask() ComponentMask {
+	return ComponentMask(1 << uint64(k))
 }

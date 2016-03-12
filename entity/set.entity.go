@@ -2,7 +2,7 @@ package entity
 
 // type (
 // 	EntitySet struct {
-// 		componentQuery ComponentSet
+// 		componentQuery ComponentMask
 // 		entities       []entityAspect
 // 		entityMap      map[ID]*entityAspect
 // 		fnMakeAspect   MakeAspectFunc
@@ -16,7 +16,7 @@ package entity
 // 	MakeAspectFunc func(eid ID, cmpts []IComponent) interface{}
 // )
 
-// func NewEntitySet(cmptQuery ComponentSet, fnMakeAspect MakeAspectFunc) *EntitySet {
+// func NewEntitySet(cmptQuery ComponentMask, fnMakeAspect MakeAspectFunc) *EntitySet {
 // 	return &EntitySet{
 // 		entities:     []entityAspect{},
 // 		entityMap:    map[ID]*entityAspect{},
@@ -30,7 +30,7 @@ package entity
 // }
 
 // func (s *EntitySet) FilterQueriedCmpts(eid ID, components []IComponent) (aspect interface{}, queryMatch bool) {
-// 	var got ComponentSet
+// 	var got ComponentMask
 
 // 	for _, cmpt := range components {
 // 		if s.componentQuery.Has(cmpt.Kind()) {
@@ -49,7 +49,7 @@ package entity
 
 // func (s *EntitySet) EntityComponentsChanged(eid ID, components []IComponent) {
 // 	cmpts := []IComponent{}
-// 	var got ComponentSet
+// 	var got ComponentMask
 
 // 	for _, cmpt := range components {
 // 		if s.componentQuery.Has(cmpt.Kind()) {
