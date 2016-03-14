@@ -1,6 +1,8 @@
 package entity
 
 import (
+	"fmt"
+
 	"github.com/brynbellomy/go-structomancer"
 )
 
@@ -25,7 +27,7 @@ func NewComponentRegistry() *ComponentRegistry {
 }
 
 func (r *ComponentRegistry) nextComponentKind() ComponentKind {
-	next := r.kindCounter //1 << r.kindCounter
+	next := 1 << r.kindCounter
 	r.kindCounter++
 	if r.kindCounter == 64 {
 		panic("entity.ComponentFactory: maximum number of component kinds exceeded (64)")
@@ -33,12 +35,18 @@ func (r *ComponentRegistry) nextComponentKind() ComponentKind {
 	return ComponentKind(next)
 }
 
-func (r *ComponentRegistry) RegisterComponentType(typeName string, cmpt IComponent) {
+func (r *ComponentRegistry) RegisterComponentType(typeName string, cmpt IComponent) ComponentKind {
+	kind := r.nextComponentKind()
+
 	r.componentTypes[typeName] = CmptType{
 		name: typeName,
-		kind: r.nextComponentKind(),
+		kind: kind,
 		z:    structomancer.New(cmpt, "config"),
 	}
+
+	fmt.Printf("Registering component type '%s' (kind = %d)\n", typeName, kind)
+
+	return kind
 }
 
 func (r *ComponentRegistry) GetComponentType(typeName string) (CmptType, bool) {

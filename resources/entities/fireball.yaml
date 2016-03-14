@@ -27,7 +27,6 @@ components:
         animation: flying
         isAnimating: true
         currentIndex: 0
-        animationStart: 0
         fps: 12
 -   type: projectile
     config:

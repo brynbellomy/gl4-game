@@ -11,109 +11,150 @@ import (
 
 type (
 	System struct {
-		entities  []entityAspect
-		entityMap map[entity.ID]*entityAspect
-	}
-
-	entityAspect struct {
-		id            entity.ID
-		gameobjCmpt   *Component
-		animationCmpt *animationsys.Component
-		moveCmpt      *movesys.Component
+		entityManager    *entity.Manager
+		componentQuery   entity.ComponentMask
+		gameobjCmptSet   entity.IComponentSet
+		animationCmptSet entity.IComponentSet
+		moveCmptSet      entity.IComponentSet
 	}
 )
 
 func New() *System {
-	return &System{
-		entities:  make([]entityAspect, 0),
-		entityMap: make(map[entity.ID]*entityAspect),
-	}
+	return &System{}
 }
 
 func (s *System) Update(t common.Time) {
-	for _, e := range s.entities {
-		cmpt := e.gameobjCmpt
-		// vel := e.moveCmpt.GetVelocity().Add(e.moveCmpt.GetInstantaneousVelocity())
-		vel := e.moveCmpt.Vector()
+	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
+	gameobjCmptIdxs, err := s.gameobjCmptSet.Indices(matchIDs)
+	if err != nil {
+		panic(err)
+	}
+	animationCmptIdxs, err := s.animationCmptSet.Indices(matchIDs)
+	if err != nil {
+		panic(err)
+	}
+	moveCmptIdxs, err := s.moveCmptSet.Indices(matchIDs)
+	if err != nil {
+		panic(err)
+	}
+
+	gameobjCmptSlice := s.gameobjCmptSet.Slice().(ComponentSlice)
+	animationCmptSlice := s.animationCmptSet.Slice().(animationsys.ComponentSlice)
+	moveCmptSlice := s.moveCmptSet.Slice().(movesys.ComponentSlice)
+
+	for i := 0; i < len(gameobjCmptIdxs); i++ {
+		gameobjCmpt := gameobjCmptSlice[gameobjCmptIdxs[i]]
+		animationCmpt := animationCmptSlice[animationCmptIdxs[i]]
+		moveCmpt := moveCmptSlice[moveCmptIdxs[i]]
+
+		vel := moveCmpt.Vector()
 
 		if vel.Len() > 0 {
 			radians := math.Atan2(float64(vel.Y()), float64(vel.X()))
 
-			cmpt.Direction = DirectionFromRadians(radians)
-			e.animationCmpt.SetIsAnimating(true)
+			gameobjCmpt.Direction = DirectionFromRadians(radians)
+			animationCmpt.SetIsAnimating(true)
 
 		} else {
-			e.animationCmpt.SetIsAnimating(false)
+			animationCmpt.SetIsAnimating(false)
 		}
 
-		if action, exists := cmpt.Animations[cmpt.Action]; exists {
-			anim := action[cmpt.Direction]
+		if action, exists := gameobjCmpt.Animations[gameobjCmpt.Action]; exists {
+			anim := action[gameobjCmpt.Direction]
 			if anim != "" {
-				e.animationCmpt.SetAnimation(anim)
+				animationCmpt.SetAnimation(anim)
 			}
 		}
+
+		gameobjCmptSlice[gameobjCmptIdxs[i]] = gameobjCmpt
+		animationCmptSlice[animationCmptIdxs[i]] = animationCmpt
+		moveCmptSlice[moveCmptIdxs[i]] = moveCmpt
 	}
 }
 
-func (s *System) ComponentTypes() map[string]entity.IComponent {
-	return map[string]entity.IComponent{
-		"gameobj": &Component{},
+func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
+	return map[string]entity.CmptTypeCfg{
+		"gameobj": {Component{}, ComponentSlice{}},
 	}
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	// em.RegisterComponentType("gameobj", &Component{})
+	s.entityManager = em
+
+	componentQuery, err := s.entityManager.MakeCmptQuery([]string{"gameobj", "animation", "move"})
+	if err != nil {
+		panic(err)
+	}
+	s.componentQuery = componentQuery
+
+	gameobjCmptSet, err := s.entityManager.GetComponentSet("gameobj")
+	if err != nil {
+		panic(err)
+	}
+	s.gameobjCmptSet = gameobjCmptSet
+
+	animationCmptSet, err := s.entityManager.GetComponentSet("animation")
+	if err != nil {
+		panic(err)
+	}
+	s.animationCmptSet = animationCmptSet
+
+	moveCmptSet, err := s.entityManager.GetComponentSet("move")
+	if err != nil {
+		panic(err)
+	}
+	s.moveCmptSet = moveCmptSet
 }
 
-func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
-	var gameobjCmpt *Component
-	var moveCmpt *movesys.Component
-	var animationCmpt *animationsys.Component
+// func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
+// 	var gameobjCmpt *Component
+// 	var moveCmpt *movesys.Component
+// 	var animationCmpt *animationsys.Component
 
-	for _, cmpt := range components {
-		if ac, is := cmpt.(*Component); is {
-			gameobjCmpt = ac
-		} else if rc, is := cmpt.(*animationsys.Component); is {
-			animationCmpt = rc
-		} else if pc, is := cmpt.(*movesys.Component); is {
-			moveCmpt = pc
-		}
+// 	for _, cmpt := range components {
+// 		if ac, is := cmpt.(*Component); is {
+// 			gameobjCmpt = ac
+// 		} else if rc, is := cmpt.(*animationsys.Component); is {
+// 			animationCmpt = rc
+// 		} else if pc, is := cmpt.(*movesys.Component); is {
+// 			moveCmpt = pc
+// 		}
 
-		if gameobjCmpt != nil && animationCmpt != nil && moveCmpt != nil {
-			break
-		}
-	}
+// 		if gameobjCmpt != nil && animationCmpt != nil && moveCmpt != nil {
+// 			break
+// 		}
+// 	}
 
-	if gameobjCmpt != nil && animationCmpt != nil && moveCmpt != nil {
-		if _, exists := s.entityMap[eid]; !exists {
-			s.entities = append(s.entities, entityAspect{
-				id:            eid,
-				gameobjCmpt:   gameobjCmpt,
-				animationCmpt: animationCmpt,
-				moveCmpt:      moveCmpt,
-			})
+// 	if gameobjCmpt != nil && animationCmpt != nil && moveCmpt != nil {
+// 		if _, exists := s.entityMap[eid]; !exists {
+// 			s.entities = append(s.entities, entityAspect{
+// 				id:            eid,
+// 				gameobjCmpt:   gameobjCmpt,
+// 				animationCmpt: animationCmpt,
+// 				moveCmpt:      moveCmpt,
+// 			})
 
-			s.entityMap[eid] = &s.entities[len(s.entities)-1]
-		}
+// 			s.entityMap[eid] = &s.entities[len(s.entities)-1]
+// 		}
 
-	} else {
-		if _, exists := s.entityMap[eid]; exists {
-			idx := -1
-			for i := range s.entities {
-				if s.entities[i].id == eid {
-					idx = i
-					break
-				}
-			}
+// 	} else {
+// 		if _, exists := s.entityMap[eid]; exists {
+// 			idx := -1
+// 			for i := range s.entities {
+// 				if s.entities[i].id == eid {
+// 					idx = i
+// 					break
+// 				}
+// 			}
 
-			if idx >= 0 {
-				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
-			}
+// 			if idx >= 0 {
+// 				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
+// 			}
 
-			delete(s.entityMap, eid)
-		}
-	}
-}
+// 			delete(s.entityMap, eid)
+// 		}
+// 	}
+// }
 
 // func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
 // 	remove := false

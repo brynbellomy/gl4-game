@@ -9,30 +9,43 @@ import (
 
 type (
 	System struct {
-		entities     []entityAspect
-		entityMap    map[entity.ID]*entityAspect
 		textureCache *texture.TextureCache
-	}
 
-	entityAspect struct {
-		id         entity.ID
-		spriteCmpt *Component
-		renderCmpt *rendersys.Component
+		entityManager  *entity.Manager
+		componentQuery entity.ComponentMask
+
+		renderCmptSet entity.IComponentSet
+		spriteCmptSet entity.IComponentSet
 	}
 )
 
 func New(textureCache *texture.TextureCache) *System {
 	return &System{
-		entities:     []entityAspect{},
-		entityMap:    map[entity.ID]*entityAspect{},
 		textureCache: textureCache,
 	}
 }
 
 func (s *System) Update(t common.Time) {
-	for _, ent := range s.entities {
-		if !ent.spriteCmpt.IsTextureLoaded {
-			textureName := ent.spriteCmpt.GetTextureName()
+	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
+	renderCmptIdxs, err := s.renderCmptSet.Indices(matchIDs)
+	if err != nil {
+		panic(err)
+	}
+	spriteCmptIdxs, err := s.spriteCmptSet.Indices(matchIDs)
+	if err != nil {
+		panic(err)
+	}
+
+	renderCmptSlice := s.renderCmptSet.Slice().(rendersys.ComponentSlice)
+	spriteCmptSlice := s.spriteCmptSet.Slice().(ComponentSlice)
+
+	for i := 0; i < len(spriteCmptIdxs); i++ {
+		spriteCmpt := spriteCmptSlice[spriteCmptIdxs[i]]
+		renderCmpt := renderCmptSlice[renderCmptIdxs[i]]
+
+		if !spriteCmpt.IsTextureLoaded {
+			textureName := spriteCmpt.GetTextureName()
+
 			var tex uint32
 			if textureName != "" {
 				t, err := s.textureCache.Load(textureName)
@@ -41,71 +54,90 @@ func (s *System) Update(t common.Time) {
 				}
 				tex = t
 			}
-			ent.spriteCmpt.SetTexture(tex)
-			ent.spriteCmpt.IsTextureLoaded = true
+			spriteCmpt.SetTexture(tex)
+			spriteCmpt.IsTextureLoaded = true
 		}
-	}
 
-	for _, ent := range s.entities {
-		ent.renderCmpt.SetTexture(ent.spriteCmpt.GetTexture())
+		renderCmpt.SetTexture(spriteCmpt.GetTexture())
+
+		spriteCmptSlice[spriteCmptIdxs[i]] = spriteCmpt
+		renderCmptSlice[renderCmptIdxs[i]] = renderCmpt
 	}
 }
 
-func (s *System) ComponentTypes() map[string]entity.IComponent {
-	return map[string]entity.IComponent{
-		"sprite": &Component{},
+func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
+	return map[string]entity.CmptTypeCfg{
+		"sprite": {Component{}, ComponentSlice{}},
 	}
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	// em.RegisterComponentType("sprite", &Component{})
+	s.entityManager = em
+
+	componentQuery, err := s.entityManager.MakeCmptQuery([]string{"sprite", "render"})
+	if err != nil {
+		panic(err)
+	}
+	s.componentQuery = componentQuery
+
+	renderCmptSet, err := s.entityManager.GetComponentSet("render")
+	if err != nil {
+		panic(err)
+	}
+	s.renderCmptSet = renderCmptSet
+
+	spriteCmptSet, err := s.entityManager.GetComponentSet("sprite")
+	if err != nil {
+		panic(err)
+	}
+	s.spriteCmptSet = spriteCmptSet
 }
 
-func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
-	var spriteCmpt *Component
-	var renderCmpt *rendersys.Component
+// func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
+// 	var spriteCmpt *Component
+// 	var renderCmpt *rendersys.Component
 
-	for _, cmpt := range components {
-		if rc, is := cmpt.(*Component); is {
-			spriteCmpt = rc
-		} else if pc, is := cmpt.(*rendersys.Component); is {
-			renderCmpt = pc
-		}
+// 	for _, cmpt := range components {
+// 		if rc, is := cmpt.(*Component); is {
+// 			spriteCmpt = rc
+// 		} else if pc, is := cmpt.(*rendersys.Component); is {
+// 			renderCmpt = pc
+// 		}
 
-		if renderCmpt != nil && spriteCmpt != nil {
-			break
-		}
-	}
+// 		if renderCmpt != nil && spriteCmpt != nil {
+// 			break
+// 		}
+// 	}
 
-	if renderCmpt != nil && spriteCmpt != nil {
-		if _, exists := s.entityMap[eid]; !exists {
-			s.entities = append(s.entities, entityAspect{
-				id:         eid,
-				renderCmpt: renderCmpt,
-				spriteCmpt: spriteCmpt,
-			})
+// 	if renderCmpt != nil && spriteCmpt != nil {
+// 		if _, exists := s.entityMap[eid]; !exists {
+// 			s.entities = append(s.entities, entityAspect{
+// 				id:         eid,
+// 				renderCmpt: renderCmpt,
+// 				spriteCmpt: spriteCmpt,
+// 			})
 
-			s.entityMap[eid] = &s.entities[len(s.entities)-1]
-		}
+// 			s.entityMap[eid] = &s.entities[len(s.entities)-1]
+// 		}
 
-	} else {
-		if _, exists := s.entityMap[eid]; exists {
-			idx := -1
-			for i := range s.entities {
-				if s.entities[i].id == eid {
-					idx = i
-					break
-				}
-			}
+// 	} else {
+// 		if _, exists := s.entityMap[eid]; exists {
+// 			idx := -1
+// 			for i := range s.entities {
+// 				if s.entities[i].id == eid {
+// 					idx = i
+// 					break
+// 				}
+// 			}
 
-			if idx >= 0 {
-				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
-			}
+// 			if idx >= 0 {
+// 				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
+// 			}
 
-			delete(s.entityMap, eid)
-		}
-	}
-}
+// 			delete(s.entityMap, eid)
+// 		}
+// 	}
+// }
 
 // func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
 // 	remove := false

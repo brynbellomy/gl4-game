@@ -7,9 +7,13 @@ import (
 type (
 	ISystem interface {
 		WillJoinManager(em *Manager)
-		ComponentTypes() map[string]IComponent
-		EntityComponentsChanged(eid ID, components []IComponent)
+		ComponentTypes() map[string]CmptTypeCfg
 		Update(t common.Time)
+	}
+
+	CmptTypeCfg struct {
+		Cmpt      IComponent
+		CmptSlice IComponentSlice
 	}
 
 	ID int64
@@ -17,26 +21,31 @@ type (
 	ComponentKind uint64
 
 	IComponent interface {
-		Kind() ComponentKind
-		SetKind(k ComponentKind)
 		Clone() IComponent
+	}
+
+	Entity struct {
+		ID             ID
+		ComponentMask  ComponentMask
+		Components     []IComponent
+		ComponentKinds []ComponentKind
 	}
 )
 
 const InvalidID ID = -1
 
-func (k ComponentKind) Kind() ComponentKind {
-	return k
-}
+// func (k ComponentKind) Kind() ComponentKind {
+// 	return k
+// }
 
-func (k *ComponentKind) SetKind(newKind ComponentKind) {
-	*k = newKind
-}
+// func (k *ComponentKind) SetKind(newKind ComponentKind) {
+// 	*k = newKind
+// }
 
-func (k ComponentKind) KindIndex() int {
-	return int(k)
-}
+// func (k ComponentKind) KindIndex() int {
+// 	return int(k)
+// }
 
-func (k ComponentKind) KindMask() ComponentMask {
-	return ComponentMask(1 << uint64(k))
-}
+// func (k ComponentKind) KindMask() ComponentMask {
+// 	return ComponentMask(1 << uint64(k))
+// }

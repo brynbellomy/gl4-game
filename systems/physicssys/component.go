@@ -20,6 +20,8 @@ type (
 
 		entity.ComponentKind `config:"-"`
 	}
+
+	ComponentSlice []Component
 )
 
 func NewComponent(velocity mgl32.Vec2, maxVelocity float32, totalCurrentForce mgl32.Vec2, boundingBox BoundingBox, collisionMask uint64, collidesWith uint64) *Component {
@@ -87,7 +89,29 @@ func (c *Component) GetBoundingBox() BoundingBox {
 	return c.BoundingBox
 }
 
-func (c *Component) Clone() entity.IComponent {
-	x := *c
-	return &x
+func (c Component) Clone() entity.IComponent {
+	return c
+}
+
+func (cs ComponentSlice) Append(cmpt entity.IComponent) entity.IComponentSlice {
+	return append(cs, cmpt.(Component))
+}
+
+func (cs ComponentSlice) Remove(idx int) entity.IComponentSlice {
+	return append(cs[:idx], cs[idx+1:]...)
+}
+
+func (cs ComponentSlice) Get(idx int) (entity.IComponent, bool) {
+	if idx >= len(cs) {
+		return nil, false
+	}
+	return cs[idx], true
+}
+
+func (cs ComponentSlice) Set(idx int, cmpt entity.IComponent) bool {
+	if idx >= len(cs) {
+		return false
+	}
+	cs[idx] = cmpt.(Component)
+	return true
 }

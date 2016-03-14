@@ -13,8 +13,11 @@ import (
 
 type (
 	System struct {
-		entities   []entityAspect
-		entityMap  map[entity.ID]*entityAspect
+		entityManager   *entity.Manager
+		componentQuery  entity.ComponentMask
+		renderCmptSet   entity.IComponentSet
+		positionCmptSet entity.IComponentSet
+
 		projection mgl32.Mat4
 		camera     mgl32.Mat4
 
@@ -24,8 +27,8 @@ type (
 
 	entityAspect struct {
 		id           entity.ID
-		renderCmpt   *Component
-		positionCmpt *positionsys.Component
+		renderCmpt   Component
+		positionCmpt positionsys.Component
 	}
 )
 
@@ -34,8 +37,6 @@ func New(shaderProgramCache *shader.ProgramCache) *System {
 	nodeFactory.RegisterNodeType("sprite", &SpriteNodeFactory{shaderProgramCache})
 
 	return &System{
-		entities:           []entityAspect{},
-		entityMap:          map[entity.ID]*entityAspect{},
 		shaderProgramCache: shaderProgramCache,
 		nodeFactory:        nodeFactory,
 	}
@@ -55,7 +56,41 @@ func (s *System) Update(t common.Time) {
 		Camera:     s.camera,
 	}
 
-	for _, ent := range s.entities {
+	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
+	renderCmptIdxs, err := s.renderCmptSet.Indices(matchIDs)
+	if err != nil {
+		panic(err)
+	}
+	positionCmptIdxs, err := s.positionCmptSet.Indices(matchIDs)
+	if err != nil {
+		panic(err)
+	}
+
+	renderCmptSlice := s.renderCmptSet.Slice().(ComponentSlice)
+	positionCmptSlice := s.positionCmptSet.Slice().(positionsys.ComponentSlice)
+
+	for i := 0; i < len(renderCmptIdxs); i++ {
+		if renderCmptSlice[renderCmptIdxs[i]].renderNode == nil {
+			node, err := s.nodeFactory.NodeFromConfig(renderCmptSlice[renderCmptIdxs[i]].NodeType, renderCmptSlice[renderCmptIdxs[i]].NodeConfig)
+			if err != nil {
+				// @@TODO
+				panic(err.Error())
+			}
+
+			renderCmptSlice[renderCmptIdxs[i]].renderNode = node
+		}
+	}
+
+	aspects := make([]entityAspect, len(renderCmptIdxs))
+	for i := 0; i < len(aspects); i++ {
+		aspects[i].id = matchIDs[i]
+		aspects[i].renderCmpt = renderCmptSlice[renderCmptIdxs[i]]
+		aspects[i].positionCmpt = positionCmptSlice[positionCmptIdxs[i]]
+	}
+
+	sort.Sort(sortableEntities(aspects))
+
+	for _, ent := range aspects {
 		rnode := ent.renderCmpt.renderNode
 		rnode.SetPos(ent.positionCmpt.GetPos())
 		rnode.SetSize(ent.positionCmpt.GetSize())
@@ -65,73 +100,91 @@ func (s *System) Update(t common.Time) {
 	}
 }
 
-func (s *System) ComponentTypes() map[string]entity.IComponent {
-	return map[string]entity.IComponent{
-		"render": &Component{},
+func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
+	return map[string]entity.CmptTypeCfg{
+		"render": {Component{}, ComponentSlice{}},
 	}
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	// em.RegisterComponentType("render", &Component{})
+	s.entityManager = em
+
+	componentQuery, err := s.entityManager.MakeCmptQuery([]string{"position", "render"})
+	if err != nil {
+		panic(err)
+	}
+	s.componentQuery = componentQuery
+
+	renderCmptSet, err := s.entityManager.GetComponentSet("render")
+	if err != nil {
+		panic(err)
+	}
+	s.renderCmptSet = renderCmptSet
+
+	positionCmptSet, err := s.entityManager.GetComponentSet("position")
+	if err != nil {
+		panic(err)
+	}
+	s.positionCmptSet = positionCmptSet
 }
 
-func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
-	var positionCmpt *positionsys.Component
-	var renderCmpt *Component
+// func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
+// 	var positionCmpt *positionsys.Component
+// 	var renderCmpt *Component
 
-	for _, cmpt := range components {
-		if rc, is := cmpt.(*Component); is {
-			renderCmpt = rc
-		} else if pc, is := cmpt.(*positionsys.Component); is {
-			positionCmpt = pc
-		}
+// 	for _, cmpt := range components {
+// 		if rc, is := cmpt.(*Component); is {
+// 			renderCmpt = rc
+// 		} else if pc, is := cmpt.(*positionsys.Component); is {
+// 			positionCmpt = pc
+// 		}
 
-		if positionCmpt != nil && renderCmpt != nil {
-			break
-		}
-	}
+// 		if positionCmpt != nil && renderCmpt != nil {
+// 			break
+// 		}
+// 	}
 
-	if renderCmpt != nil && positionCmpt != nil {
-		if _, exists := s.entityMap[eid]; !exists {
-			// initialize the render node on the `renderCmpt`
-			node, err := s.nodeFactory.NodeFromConfig(renderCmpt.NodeType, renderCmpt.NodeConfig)
-			if err != nil {
-				// @@TODO
-				panic(err.Error())
-			}
+// 	if renderCmpt != nil && positionCmpt != nil {
+// 		if _, exists := s.entityMap[eid]; !exists {
+// 			// initialize the render node on the `renderCmpt`
+// 			node, err := s.nodeFactory.NodeFromConfig(renderCmpt.NodeType, renderCmpt.NodeConfig)
+// 			if err != nil {
+// 				// @@TODO
+// 				panic(err.Error())
+// 			}
 
-			renderCmpt.renderNode = node
+// 			renderCmpt.renderNode = node
 
-			s.entities = append(s.entities, entityAspect{
-				id:           eid,
-				positionCmpt: positionCmpt,
-				renderCmpt:   renderCmpt,
-			})
+// 			s.entities = append(s.entities, entityAspect{
+// 				id:           eid,
+// 				positionCmpt: positionCmpt,
+// 				renderCmpt:   renderCmpt,
+// 			})
 
-			s.entityMap[eid] = &s.entities[len(s.entities)-1]
-		}
+// 			s.entityMap[eid] = &s.entities[len(s.entities)-1]
+// 		}
 
-	} else {
-		if _, exists := s.entityMap[eid]; exists {
-			idx := -1
-			for i := range s.entities {
-				if s.entities[i].id == eid {
-					idx = i
-					break
-				}
-			}
+// 	} else {
+// 		if _, exists := s.entityMap[eid]; exists {
+// 			idx := -1
+// 			for i := range s.entities {
+// 				if s.entities[i].id == eid {
+// 					idx = i
+// 					break
+// 				}
+// 			}
 
-			if idx >= 0 {
-				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
-			}
+// 			if idx >= 0 {
+// 				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
+// 			}
 
-			delete(s.entityMap, eid)
-		}
-	}
+// 			delete(s.entityMap, eid)
+// 		}
+// 	}
 
-	// sort entities by z-index every time entity/component list changes
-	sort.Sort(sortableEntities(s.entities))
-}
+// 	// sort entities by z-index every time entity/component list changes
+// 	sort.Sort(sortableEntities(s.entities))
+// }
 
 type sortableEntities []entityAspect
 

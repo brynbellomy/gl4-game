@@ -13,11 +13,11 @@ type (
 		Thrust          float32         `config:"thrust"`
 		State           ProjectileState `config:"state"`
 		RemoveOnContact bool            `config:"removeOnContact"`
-
-		entity.ComponentKind `config:"-"`
 	}
 
 	ProjectileState int
+
+	ComponentSlice []Component
 )
 
 const (
@@ -25,10 +25,6 @@ const (
 	Flying
 	Impacting
 )
-
-func NewComponent(heading mgl32.Vec2, exitVelocity float32, thrust float32, state ProjectileState, removeOnContact bool) *Component {
-	return &Component{Heading: heading, ExitVelocity: exitVelocity, Thrust: thrust, State: state, RemoveOnContact: removeOnContact}
-}
 
 func (c *Component) GetHeading() mgl32.Vec2 {
 	return c.Heading
@@ -38,7 +34,29 @@ func (c *Component) SetHeading(heading mgl32.Vec2) {
 	c.Heading = heading
 }
 
-func (c *Component) Clone() entity.IComponent {
-	x := *c
-	return &x
+func (c Component) Clone() entity.IComponent {
+	return c
+}
+
+func (cs ComponentSlice) Append(cmpt entity.IComponent) entity.IComponentSlice {
+	return append(cs, cmpt.(Component))
+}
+
+func (cs ComponentSlice) Remove(idx int) entity.IComponentSlice {
+	return append(cs[:idx], cs[idx+1:]...)
+}
+
+func (cs ComponentSlice) Get(idx int) (entity.IComponent, bool) {
+	if idx >= len(cs) {
+		return nil, false
+	}
+	return cs[idx], true
+}
+
+func (cs ComponentSlice) Set(idx int, cmpt entity.IComponent) bool {
+	if idx >= len(cs) {
+		return false
+	}
+	cs[idx] = cmpt.(Component)
+	return true
 }

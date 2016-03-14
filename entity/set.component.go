@@ -7,32 +7,48 @@ import (
 
 type (
 	ComponentSet struct {
-		components []IComponent
+		components IComponentSlice
 		idxMap     map[ID]int
+	}
+
+	IComponentSlice interface {
+		Get(idx int) (IComponent, bool)
+		Set(idx int, cmpt IComponent) bool
+		Append(cmpt IComponent) IComponentSlice
+		Remove(idx int) IComponentSlice
 	}
 
 	IComponentSet interface {
 		Add(eid ID, cmpt IComponent) error
 		Remove(eid ID) error
-		Visitor(ids []ID) (*ComponentSetVisitor, error)
+		Get(eid ID) (IComponent, error)
+		Set(eid ID, cmpt IComponent) error
+		Indices(entityIDs []ID) ([]int, error)
+		IDForIndex(idx int) (ID, bool)
+		Slice() interface{}
 
-		Len() int
-		Get(idx int) IComponent
-		Set(idx int, cmpt IComponent)
-	}
-
-	ComponentSetVisitor struct {
-		cmptSet    IComponentSet
-		currentIdx int
-		indices    []int
+		DebugIdxMap() map[ID]int
 	}
 )
 
-func NewComponentSet() *ComponentSet {
+func NewComponentSet(cmptSlice IComponentSlice) IComponentSet {
 	return &ComponentSet{
-		components: []IComponent{},
+		components: cmptSlice,
 		idxMap:     map[ID]int{},
 	}
+}
+
+func (cs *ComponentSet) DebugIdxMap() map[ID]int {
+	return cs.idxMap
+}
+
+func (cs *ComponentSet) IDForIndex(idx int) (ID, bool) {
+	for id, midx := range cs.idxMap {
+		if idx == midx {
+			return id, true
+		}
+	}
+	return InvalidID, false
 }
 
 func (cs *ComponentSet) Add(eid ID, cmpt IComponent) error {
@@ -40,8 +56,8 @@ func (cs *ComponentSet) Add(eid ID, cmpt IComponent) error {
 		return errors.New("component already exists")
 	}
 
-	cs.components = append(cs.components, cmpt)
-	cs.idxMap[eid] = len(cs.components) - 1
+	cs.components = cs.components.Append(cmpt)
+	cs.idxMap[eid] = len(cs.idxMap)
 	return nil
 }
 
@@ -51,58 +67,58 @@ func (cs *ComponentSet) Remove(eid ID) error {
 		return fmt.Errorf("component '%v' does not exist", eid)
 	}
 
-	cs.components = append(cs.components[:idx], cs.components[idx+1:]...)
+	cs.components = cs.components.Remove(idx)
+
+	for key, curidx := range cs.idxMap {
+		if curidx > idx {
+			cs.idxMap[key] = curidx - 1
+		}
+	}
+
 	delete(cs.idxMap, eid)
 	return nil
 }
 
-func (cs *ComponentSet) IndexOf(eid ID) (int, bool) {
+func (cs *ComponentSet) Get(eid ID) (IComponent, error) {
 	idx, exists := cs.idxMap[eid]
-	return idx, exists
+	if !exists {
+		return nil, fmt.Errorf("entity.ComponentSet.Get: unknown entity ID '%v'", eid)
+	}
+
+	cmpt, exists := cs.components.Get(idx)
+	if !exists {
+		return nil, fmt.Errorf("entity.ComponentSet.Get: unknown component index '%v'", idx)
+	}
+
+	return cmpt, nil
 }
 
-func (cs *ComponentSet) Get(idx int) IComponent {
-	return cs.components[idx]
+func (cs *ComponentSet) Set(eid ID, cmpt IComponent) error {
+	idx, exists := cs.idxMap[eid]
+	if !exists {
+		return fmt.Errorf("entity.ComponentSet.Set: unknown entity ID '%v'", eid)
+	}
+
+	exists = cs.components.Set(idx, cmpt)
+	if !exists {
+		return fmt.Errorf("entity.ComponentSet.Set: unknown entity ID '%v'", eid)
+	}
+
+	return nil
 }
 
-func (cs *ComponentSet) Set(idx int, cmpt IComponent) {
-	cs.components[idx] = cmpt
-}
-
-func (cs *ComponentSet) Len() int {
-	return len(cs.components)
-}
-
-func (cs *ComponentSet) Visitor(entityIDs []ID) (*ComponentSetVisitor, error) {
+func (cs *ComponentSet) Indices(entityIDs []ID) ([]int, error) {
 	indices := make([]int, len(entityIDs))
 	for i, eid := range entityIDs {
 		idx, exists := cs.idxMap[eid]
 		if !exists {
-			return nil, fmt.Errorf("entity.ComponentSet.Visitor: unknown entity ID '%v'", eid)
+			return nil, fmt.Errorf("entity.ComponentSet.Indices: unknown entity ID '%v'", eid)
 		}
 		indices[i] = idx
 	}
-	return &ComponentSetVisitor{cs, 0, indices}, nil
+	return indices, nil
 }
 
-func (v *ComponentSetVisitor) Advance() {
-	v.currentIdx++
-}
-
-func (v *ComponentSetVisitor) Get() IComponent {
-	idx := v.indices[v.currentIdx]
-	return v.cmptSet.Get(idx)
-}
-
-func (v *ComponentSetVisitor) Set(cmpt IComponent) {
-	idx := v.indices[v.currentIdx]
-	v.cmptSet.Set(idx, cmpt)
-}
-
-func (v *ComponentSetVisitor) Len() int {
-	return len(v.indices)
-}
-
-func (v *ComponentSetVisitor) Indices() []int {
-	return v.indices
+func (cs *ComponentSet) Slice() interface{} {
+	return cs.components
 }

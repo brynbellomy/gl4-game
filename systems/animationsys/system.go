@@ -11,139 +11,170 @@ import (
 
 type (
 	System struct {
-		entities   []entityAspect
-		entityMap  map[entity.ID]*entityAspect
 		atlasCache *texture.AtlasCache
-	}
 
-	entityAspect struct {
-		id            entity.ID
-		renderCmpt    *rendersys.Component
-		animationCmpt *Component
+		entityManager    *entity.Manager
+		componentQuery   entity.ComponentMask
+		renderCmptSet    entity.IComponentSet
+		animationCmptSet entity.IComponentSet
 	}
 )
 
 func New(atlasCache *texture.AtlasCache) *System {
 	return &System{
-		entities:   []entityAspect{},
-		entityMap:  map[entity.ID]*entityAspect{},
 		atlasCache: atlasCache,
 	}
 }
 
-func (s *System) GetAnimation(eid entity.ID) string {
-	if e, exists := s.entityMap[eid]; exists {
-		return e.animationCmpt.Animation
-	} else {
-		panic("entity does not exist")
-	}
-}
+// func (s *System) GetAnimation(eid entity.ID) string {
+// 	if e, exists := s.entityMap[eid]; exists {
+// 		return e.animationCmpt.Animation
+// 	} else {
+// 		panic("entity does not exist")
+// 	}
+// }
 
-func (s *System) SetAnimation(eid entity.ID, animation string, animationStart common.Time) {
-	if e, exists := s.entityMap[eid]; exists {
-		e.animationCmpt.Animation = animation
-		e.animationCmpt.IsAnimating = true
+// func (s *System) SetAnimation(eid entity.ID, animation string, animationStart common.Time) {
+// 	if e, exists := s.entityMap[eid]; exists {
+// 		e.animationCmpt.Animation = animation
+// 		e.animationCmpt.IsAnimating = true
 
-	} else {
-		panic("entity does not exist")
-	}
-}
+// 	} else {
+// 		panic("entity does not exist")
+// 	}
+// }
 
-func (s *System) StopAnimating(eid entity.ID) {
-	if e, exists := s.entityMap[eid]; exists {
-		e.animationCmpt.IsAnimating = false
+// func (s *System) StopAnimating(eid entity.ID) {
+// 	if e, exists := s.entityMap[eid]; exists {
+// 		e.animationCmpt.IsAnimating = false
 
-	} else {
-		panic("entity does not exist")
-	}
-}
+// 	} else {
+// 		panic("entity does not exist")
+// 	}
+// }
 
 func (s *System) Update(t common.Time) {
-	for _, e := range s.entities {
-		cmpt := e.animationCmpt
+	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
+	renderCmptIdxs, err := s.renderCmptSet.Indices(matchIDs)
+	if err != nil {
+		panic(err)
+	}
+	animationCmptIdxs, err := s.animationCmptSet.Indices(matchIDs)
+	if err != nil {
+		panic(err)
+	}
 
-		atlas, err := s.atlasCache.Load(cmpt.AtlasName)
+	animationCmptSlice := s.animationCmptSet.Slice().(ComponentSlice)
+	renderCmptSlice := s.renderCmptSet.Slice().(rendersys.ComponentSlice)
+
+	for i := 0; i < len(animationCmptIdxs); i++ {
+		animationCmpt := animationCmptSlice[animationCmptIdxs[i]]
+		renderCmpt := renderCmptSlice[renderCmptIdxs[i]]
+
+		atlas, err := s.atlasCache.Load(animationCmpt.AtlasName)
 		if err != nil {
 			panic(err.Error())
 		}
 
-		textures := atlas.Animation(cmpt.Animation)
+		textures := atlas.Animation(animationCmpt.Animation)
 		if len(textures) <= 0 {
-			continue
+			panic("textures slice is empty")
 		}
 
-		if !cmpt.IsAnimating {
-			e.renderCmpt.SetTexture(textures[cmpt.CurrentIndex])
-			continue
+		if !animationCmpt.IsAnimating {
+			animationCmpt.CurrentIndex = 0
+			renderCmpt.SetTexture(textures[animationCmpt.CurrentIndex])
+
+		} else {
+			elapsedNano := t - animationCmpt.AnimationStart
+			totalFrames := int64(math.Floor(elapsedNano.Seconds() * float64(animationCmpt.FPS)))
+			newIndex := int(totalFrames % int64(len(textures)))
+
+			if animationCmpt.CurrentIndex == 0 || newIndex != animationCmpt.CurrentIndex {
+				animationCmpt.CurrentIndex = newIndex
+				tex := textures[animationCmpt.CurrentIndex]
+				renderCmpt.SetTexture(tex)
+			}
 		}
 
-		elapsedNano := t - cmpt.AnimationStart
-		totalFrames := int64(math.Floor(elapsedNano.Seconds() * float64(cmpt.FPS)))
-		newIndex := int(totalFrames % int64(len(textures)))
-
-		if cmpt.CurrentIndex == 0 || newIndex != cmpt.CurrentIndex {
-			cmpt.CurrentIndex = newIndex
-			tex := textures[cmpt.CurrentIndex]
-			e.renderCmpt.SetTexture(tex)
-		}
+		animationCmptSlice[animationCmptIdxs[i]] = animationCmpt
+		renderCmptSlice[renderCmptIdxs[i]] = renderCmpt
 	}
 }
 
-func (s *System) ComponentTypes() map[string]entity.IComponent {
-	return map[string]entity.IComponent{
-		"animation": &Component{},
+func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
+	return map[string]entity.CmptTypeCfg{
+		"animation": {Component{}, ComponentSlice{}},
 	}
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
-	// em.RegisterComponentType("animation", &Component{})
+	s.entityManager = em
+
+	componentQuery, err := s.entityManager.MakeCmptQuery([]string{"render", "animation"})
+	if err != nil {
+		panic(err)
+	}
+	s.componentQuery = componentQuery
+
+	renderCmptSet, err := s.entityManager.GetComponentSet("render")
+	if err != nil {
+		panic(err)
+	}
+	s.renderCmptSet = renderCmptSet
+
+	animationCmptSet, err := s.entityManager.GetComponentSet("animation")
+	if err != nil {
+		panic(err)
+	}
+	s.animationCmptSet = animationCmptSet
 }
 
-func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
-	var animationCmpt *Component
-	var renderCmpt *rendersys.Component
+// func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
+// 	var animationCmpt *Component
+// 	var renderCmpt *rendersys.Component
 
-	for _, cmpt := range components {
-		if ac, is := cmpt.(*Component); is {
-			animationCmpt = ac
-		} else if rc, is := cmpt.(*rendersys.Component); is {
-			renderCmpt = rc
-		}
+// 	for _, cmpt := range components {
+// 		if ac, is := cmpt.(*Component); is {
+// 			animationCmpt = ac
+// 		} else if rc, is := cmpt.(*rendersys.Component); is {
+// 			renderCmpt = rc
+// 		}
 
-		if animationCmpt != nil && renderCmpt != nil {
-			break
-		}
-	}
+// 		if animationCmpt != nil && renderCmpt != nil {
+// 			break
+// 		}
+// 	}
 
-	if animationCmpt != nil && renderCmpt != nil {
-		if _, exists := s.entityMap[eid]; !exists {
-			s.entities = append(s.entities, entityAspect{
-				id:            eid,
-				animationCmpt: animationCmpt,
-				renderCmpt:    renderCmpt,
-			})
+// 	if animationCmpt != nil && renderCmpt != nil {
+// 		if _, exists := s.entityMap[eid]; !exists {
+// 			s.entities = append(s.entities, entityAspect{
+// 				id:            eid,
+// 				animationCmpt: animationCmpt,
+// 				renderCmpt:    renderCmpt,
+// 			})
 
-			s.entityMap[eid] = &s.entities[len(s.entities)-1]
-		}
+// 			s.entityMap[eid] = &s.entities[len(s.entities)-1]
+// 		}
 
-	} else {
-		if _, exists := s.entityMap[eid]; exists {
-			idx := -1
-			for i := range s.entities {
-				if s.entities[i].id == eid {
-					idx = i
-					break
-				}
-			}
+// 	} else {
+// 		if _, exists := s.entityMap[eid]; exists {
+// 			idx := -1
+// 			for i := range s.entities {
+// 				if s.entities[i].id == eid {
+// 					idx = i
+// 					break
+// 				}
+// 			}
 
-			if idx >= 0 {
-				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
-			}
+// 			if idx >= 0 {
+// 				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
+// 			}
 
-			delete(s.entityMap, eid)
-		}
-	}
-}
+// 			delete(s.entityMap, eid)
+// 		}
+// 	}
+// }
 
 // func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
 // 	remove := false

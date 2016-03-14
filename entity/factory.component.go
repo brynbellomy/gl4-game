@@ -25,30 +25,30 @@ func NewComponentFactory(componentRegistry *ComponentRegistry) *ComponentFactory
 	}
 }
 
-func (f *ComponentFactory) ComponentFromConfig(cmptcfg map[string]interface{}) (IComponent, error) {
+func (f *ComponentFactory) ComponentFromConfig(cmptcfg map[string]interface{}) (IComponent, ComponentKind, error) {
 	c, err := componentConfigType.MapToStruct(cmptcfg)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	cfg := c.(*componentConfig)
 	if cfg.Type == "" {
-		return nil, errors.New("missing 'type' key")
+		return nil, 0, errors.New("missing 'type' key")
 	} else if cfg.Config == nil {
-		return nil, errors.New("missing 'config' key")
+		return nil, 0, errors.New("missing 'config' key")
 	}
 
 	ctype, exists := f.componentRegistry.GetComponentType(cfg.Type)
 	if !exists {
-		return nil, errors.New("component type '" + cfg.Type + "' is not registered")
+		return nil, 0, errors.New("component type '" + cfg.Type + "' is not registered")
 	}
 
 	cmpt, err := ctype.DeserializeConfig(cfg.Config)
 	if err != nil {
-		return nil, errors.New("error deserializing component (type = " + cfg.Type + ")" + err.Error())
+		return nil, 0, errors.New("error deserializing component (type = " + cfg.Type + ")" + err.Error())
 	}
 
-	cmpt.(IComponent).SetKind(ctype.kind)
+	// cmpt.(IComponent).SetKind(ctype.kind)
 
-	return cmpt.(IComponent), nil
+	return cmpt.(IComponent), ctype.kind, nil
 }

@@ -103,7 +103,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 
 	var (
 		inputMapper  = &InputMapper{}
-		inputHandler = NewInputHandler(moveSystem, positionSystem, gameobjSystem)
+		inputHandler = NewInputHandler(moveSystem)
 		inputSystem  = inputsys.New(newInputState(), inputMapper, inputHandler)
 	)
 
@@ -172,6 +172,7 @@ func (s *MainScene) Prepare() error {
 
 	s.inputSystem.BecomeInputResponder(s.window)
 	s.inputSystem.SetControlledEntity(s.heroID)
+	s.inputHandler.SetEntityManager(s.entityManager)
 	s.inputHandler.onFireWeapon = s.onFireWeapon
 
 	s.physicsSystem.OnCollision(func(c physicssys.Collision) {
@@ -203,13 +204,13 @@ func (s *MainScene) loadScene() error {
 	}
 
 	// deserialize all entities and add them to the scene
-	for _, ent := range sceneData.Entities {
-		eid, cmpts, err := s.entityManager.EntityFromConfig(ent)
+	for _, entcfg := range sceneData.Entities {
+		ent, err := s.entityManager.EntityFromConfig(entcfg)
 		if err != nil {
 			return err
 		}
 
-		s.entityManager.SetComponents(eid, cmpts)
+		s.entityManager.SetEntity(ent)
 	}
 
 	return nil
@@ -251,7 +252,17 @@ func (s *MainScene) getWorldPos(windowPos common.WindowPos) (mgl32.Vec2, error) 
 }
 
 func (s *MainScene) getCameraPos() mgl32.Vec2 {
-	return s.positionSystem.GetPos(s.cameraID)
+	posCmptSet, err := s.entityManager.GetComponentSet("position")
+	if err != nil {
+		panic(err)
+	}
+	posCmpt, err := posCmptSet.Get(s.cameraID)
+	if err != nil {
+		panic(err)
+	}
+
+	pc := posCmpt.(positionsys.Component)
+	return pc.GetPos()
 }
 
 func (s *MainScene) getCamera() mgl32.Mat4 {
@@ -265,25 +276,38 @@ func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon)
 		panic(err)
 	}
 
-	pos := s.positionSystem.GetPos(controlledEntity)
+	posCmptSet, err := s.entityManager.GetComponentSet("position")
+	if err != nil {
+		panic(err)
+	}
+	posCmpt, err := posCmptSet.Get(controlledEntity)
+	if err != nil {
+		panic(err)
+	}
+
+	pc := posCmpt.(positionsys.Component)
+	pos := pc.GetPos()
 	vec := targetPos.Sub(pos)
 
-	eid, cmpts, err := s.entityManager.EntityFromTemplate("fireball")
+	fireballEnt, err := s.entityManager.EntityFromTemplate("fireball")
 	if err != nil {
 		// @@TODO
 		panic(err)
 	}
 
-	for _, cmpt := range cmpts {
+	for i, cmpt := range fireballEnt.Components {
 		switch cmpt := cmpt.(type) {
-		case *projectilesys.Component:
+		case projectilesys.Component:
 			cmpt.SetHeading(vec)
-		case *positionsys.Component:
+			fireballEnt.Components[i] = cmpt
+
+		case positionsys.Component:
 			cmpt.SetPos(pos)
+			fireballEnt.Components[i] = cmpt
 		}
 	}
 
-	s.entityManager.SetComponents(eid, cmpts)
+	s.entityManager.SetEntity(fireballEnt)
 }
 
 func (s *MainScene) Update() {

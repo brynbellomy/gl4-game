@@ -1,15 +1,15 @@
 package entity
 
 type (
-	ComponentMask ComponentKind
+	ComponentMask uint64
 )
 
 func (c ComponentMask) Has(n ComponentKind) bool {
-	return c&n.KindMask() > 0
+	return (c & ComponentMask(n)) > 0
 }
 
 func (c ComponentMask) HasAll(n ComponentMask) bool {
-	return c&n > 0
+	return (c & n) == n
 }
 
 // func (c ComponentMask) HasN(n uint) bool {
@@ -21,7 +21,7 @@ func (c ComponentMask) HasAll(n ComponentMask) bool {
 // }
 
 func (c ComponentMask) Add(other ComponentKind) ComponentMask {
-	return c | other.KindMask()
+	return c | ComponentMask(other)
 }
 
 // func (c *ComponentMask) Set(n uint, val bool) {

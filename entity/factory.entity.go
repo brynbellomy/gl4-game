@@ -25,26 +25,26 @@ func NewEntityFactory(cmptRegistry *ComponentRegistry) *EntityFactory {
 	}
 }
 
-// func (f *EntityFactory) RegisterComponentType(typeName string, cmpt IComponent) {
-// 	f.cmptFactory.RegisterComponentType(typeName, cmpt)
-// }
-
-func (f *EntityFactory) EntityFromConfig(cfg map[string]interface{}) (ID, []IComponent, error) {
+func (f *EntityFactory) EntityFromConfig(cfg map[string]interface{}) (Entity, error) {
 	c, err := entityConfigType.MapToStruct(cfg)
 	if err != nil {
-		return 0, nil, errors.New("error deserializing entity from config: " + err.Error())
+		return Entity{}, errors.New("error deserializing entity from config: " + err.Error())
 	}
 
 	config := c.(*entityConfig)
 
 	cmpts := make([]IComponent, len(config.Components))
+	kinds := make([]ComponentKind, len(config.Components))
+	mask := ComponentMask(0)
 	for i, cmptcfg := range config.Components {
-		cmpt, err := f.cmptFactory.ComponentFromConfig(cmptcfg)
+		cmpt, kind, err := f.cmptFactory.ComponentFromConfig(cmptcfg)
 		if err != nil {
-			return 0, nil, errors.New("error deserializing component from config: " + err.Error())
+			return Entity{}, errors.New("error deserializing component from config: " + err.Error())
 		}
 		cmpts[i] = cmpt
+		mask = mask.Add(kind)
+		kinds[i] = kind
 	}
 
-	return config.ID, cmpts, nil
+	return Entity{ID: config.ID, ComponentMask: mask, ComponentKinds: kinds, Components: cmpts}, nil
 }

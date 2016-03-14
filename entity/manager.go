@@ -22,18 +22,21 @@ type (
 		idCounter ID
 		usedIDs   map[ID]bool
 	}
-
-	Entity struct {
-		ID            ID
-		ComponentMask ComponentMask
-		Components    []IComponent
-	}
 )
 
 func NewManager(fs assetsys.IFilesystem, systems []ISystem) *Manager {
 	cmptRegistry := NewComponentRegistry()
 	entityFactory := NewEntityFactory(cmptRegistry)
 	templateCache := NewTemplateCache(fs, entityFactory)
+
+	componentSets := map[ComponentKind]IComponentSet{}
+	for _, sys := range systems {
+		ctypes := sys.ComponentTypes()
+		for name, cmpt := range ctypes {
+			kind := cmptRegistry.RegisterComponentType(name, cmpt.Cmpt)
+			componentSets[kind] = NewComponentSet(cmpt.CmptSlice)
+		}
+	}
 
 	m := &Manager{
 		systems:       systems,
@@ -43,13 +46,7 @@ func NewManager(fs assetsys.IFilesystem, systems []ISystem) *Manager {
 		entityFactory: entityFactory,
 		templateCache: templateCache,
 		cmptRegistry:  cmptRegistry,
-	}
-
-	for _, sys := range systems {
-		ctypes := sys.ComponentTypes()
-		for name, cmpt := range ctypes {
-			cmptRegistry.RegisterComponentType(name, cmpt)
-		}
+		componentSets: componentSets,
 	}
 
 	for _, sys := range systems {
@@ -62,8 +59,8 @@ func NewManager(fs assetsys.IFilesystem, systems []ISystem) *Manager {
 func (m *Manager) newEntityID() ID {
 	for id := m.idCounter; ; id++ {
 		if m.usedIDs[id] == false {
-			m.usedIDs[id] = true
-			m.idCounter = id + 1
+			// m.usedIDs[id] = true
+			// m.idCounter = id + 1
 			return id
 		}
 	}
@@ -77,6 +74,24 @@ func (m *Manager) setIDUsed(eid ID) {
 	if m.idCounter <= eid {
 		m.idCounter = eid + 1
 	}
+}
+
+// func (m *Manager) GetEntityComponent(eid ID, cmptName string) (IComponent, error) {
+//     m.GetComponentSet(cmptName)
+// }
+
+func (m *Manager) GetComponentSet(name string) (IComponentSet, error) {
+	cmptType, exists := m.cmptRegistry.GetComponentType(name)
+	if !exists {
+		return nil, errors.New("entity.Manager.GetComponentSet: unregistered component type '" + name + "'")
+	}
+
+	set, exists := m.componentSets[cmptType.Kind()]
+	if !exists {
+		return nil, errors.New("entity.Manager.GetComponentSet: unregistered component type '" + name + "'")
+	}
+
+	return set, nil
 }
 
 func (m *Manager) EntitiesMatching(cmptMask ComponentMask) []ID {
@@ -102,49 +117,39 @@ func (m *Manager) MakeCmptQuery(cmptTypes []string) (ComponentMask, error) {
 	return cmptQuery, nil
 }
 
-// func (m *Manager) RegisterComponentType(typeName string, cmpt IComponent) {
-// 	m.cmptRegistry.RegisterComponentType(typeName, cmpt)
-// }
-
-func (m *Manager) EntityFromTemplate(name string) (ID, []IComponent, error) {
-	eid := m.newEntityID()
-
+func (m *Manager) EntityFromTemplate(name string) (Entity, error) {
 	ent, err := m.templateCache.Load(name)
 	if err != nil {
-		return 0, nil, err
+		return Entity{}, err
 	}
 
-	return eid, ent, nil
+	ent.ID = m.newEntityID()
+	m.setIDUsed(ent.ID)
+
+	return ent, nil
 }
 
-func (m *Manager) EntityFromConfig(config map[string]interface{}) (ID, []IComponent, error) {
-	eid, cmpts, err := m.entityFactory.EntityFromConfig(config)
+func (m *Manager) EntityFromConfig(config map[string]interface{}) (Entity, error) {
+	entity, err := m.entityFactory.EntityFromConfig(config)
 	if err != nil {
-		return 0, nil, err
+		return Entity{}, err
 	}
 
-	if m.usedIDs[eid] == true {
-		return 0, nil, fmt.Errorf("entity.Manager: entity ID '%s' is already in use", eid)
+	if m.usedIDs[entity.ID] == true {
+		return Entity{}, fmt.Errorf("entity.Manager: entity ID '%s' is already in use", entity.ID)
 	}
+	m.setIDUsed(entity.ID)
 
-	m.setIDUsed(eid)
-
-	return eid, cmpts, nil
+	return entity, nil
 }
 
-func (m *Manager) SetComponents(eid ID, components []IComponent) {
-	var mask ComponentMask
-	for _, cmpt := range components {
-		mask = mask.Add(cmpt.Kind())
-	}
+func (m *Manager) SetEntity(entity Entity) {
+	m.entities = append(m.entities, entity)
+	// m.setIDUsed(eid)
 
-	ent := Entity{ID: eid, ComponentMask: mask, Components: components}
-
-	m.entities = append(m.entities, ent)
-	m.setIDUsed(eid)
-
-	for _, sys := range m.systems {
-		sys.EntityComponentsChanged(eid, components)
+	for i, cmpt := range entity.Components {
+		kind := entity.ComponentKinds[i]
+		m.componentSets[kind].Add(entity.ID, cmpt)
 	}
 }
 
@@ -163,11 +168,16 @@ func (m *Manager) CullEntities() {
 		}
 
 		if removedIdx >= 0 {
+			ent := m.entities[removedIdx]
+			for _, kind := range ent.ComponentKinds {
+				m.componentSets[kind].Remove(eid)
+			}
+
 			m.entities = append(m.entities[:removedIdx], m.entities[removedIdx+1:]...)
 
-			for _, sys := range m.systems {
-				sys.EntityComponentsChanged(eid, []IComponent{})
-			}
+			// for _, sys := range m.systems {
+			// 	sys.EntityComponentsChanged(eid, []IComponent{})
+			// }
 		}
 	}
 	m.cullable = []ID{}

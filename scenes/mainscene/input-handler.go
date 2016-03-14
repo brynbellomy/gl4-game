@@ -5,27 +5,28 @@ import (
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
-	"github.com/brynbellomy/gl4-game/systems/gameobjsys"
 	"github.com/brynbellomy/gl4-game/systems/inputsys"
 	"github.com/brynbellomy/gl4-game/systems/movesys"
-	"github.com/brynbellomy/gl4-game/systems/positionsys"
 )
 
 type InputHandler struct {
-	moveSystem       *movesys.System
-	positionSystem   *positionsys.System
-	gameobjSystem    *gameobjsys.System
+	moveSystem *movesys.System
+	// moveCmptSet      entity.IComponentSet
+	entityManager    *entity.Manager
 	controlledEntity entity.ID
 	onFireWeapon     func(controlledEntity entity.ID, x ActionFireWeapon)
 }
 
-func NewInputHandler(moveSystem *movesys.System, positionSystem *positionsys.System, gameobjSystem *gameobjsys.System) *InputHandler {
+func NewInputHandler(moveSystem *movesys.System) *InputHandler {
 	return &InputHandler{
-		moveSystem:       moveSystem,
-		positionSystem:   positionSystem,
-		gameobjSystem:    gameobjSystem,
+		moveSystem: moveSystem,
+		// moveCmptSet:      moveCmptSet,
 		controlledEntity: entity.InvalidID,
 	}
+}
+
+func (h *InputHandler) SetEntityManager(entityManager *entity.Manager) {
+	h.entityManager = entityManager
 }
 
 func (h *InputHandler) SetControlledEntity(eid entity.ID) {
@@ -58,7 +59,19 @@ func (h *InputHandler) HandleInputState(t common.Time, st inputsys.IInputState) 
 	}
 
 	if h.controlledEntity != entity.InvalidID {
-		h.moveSystem.SetMovementVector(h.controlledEntity, totalAccel)
+		moveCmptSet, err := h.entityManager.GetComponentSet("move")
+		if err != nil {
+			panic(err)
+		}
+
+		e, err := moveCmptSet.Get(h.controlledEntity)
+		if err != nil {
+			panic(err)
+		}
+
+		ent := e.(movesys.Component)
+		ent.SetVector(totalAccel)
+		moveCmptSet.Set(h.controlledEntity, ent)
 	}
 
 	for _, x := range state.actions {
