@@ -11,12 +11,6 @@ type (
 		componentTypes map[string]CmptType
 		kindCounter    uint64
 	}
-
-	CmptType struct {
-		name string
-		kind ComponentKind
-		z    *structomancer.Structomancer
-	}
 )
 
 func NewComponentRegistry() *ComponentRegistry {
@@ -53,6 +47,14 @@ func (r *ComponentRegistry) GetComponentType(typeName string) (CmptType, bool) {
 	k, exists := r.componentTypes[typeName]
 	return k, exists
 }
+
+type (
+	CmptType struct {
+		name string
+		kind ComponentKind
+		z    *structomancer.Structomancer
+	}
+)
 
 func (c CmptType) Kind() ComponentKind {
 	return c.kind

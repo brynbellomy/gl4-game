@@ -8,9 +8,12 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
+
+	"github.com/brynbellomy/go-speedometer"
 
 	"github.com/brynbellomy/gl4-game/scenes/mainscene"
 )
@@ -60,6 +63,16 @@ func main() {
 		panic(err)
 	}
 
+	sp := speedometer.New()
+	sp.Start()
+
+	go func() {
+		for {
+			fmt.Println("fps:", sp.Speed().PerSecond())
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
 	for !window.ShouldClose() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
@@ -68,6 +81,7 @@ func main() {
 		// Maintenance
 		window.SwapBuffers()
 		glfw.PollEvents()
+		sp.Incr(1)
 	}
 }
 

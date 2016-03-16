@@ -2,26 +2,24 @@ package triggersys
 
 import (
 	"github.com/brynbellomy/gl4-game/common"
-	// "github.com/brynbellomy/gl4-game/entity"
+	"github.com/brynbellomy/gl4-game/entity"
 )
 
 type (
-	Trigger struct {
-		ICondition
-		IEffect
-	}
+	// Trigger struct {
+	// 	ICondition
+	// 	IEffect
+	// }
 
 	ICondition interface {
-		ConditionValue(t common.Time) bool
+		GetMatches(t common.Time) ([]entity.ID, error)
+		WillJoinManager(em *entity.Manager) error
+		WillLeaveManager() error
 	}
 
 	IEffect interface {
-		Execute(t common.Time)
+		Execute(t common.Time, targets []entity.ID) error
+		WillJoinManager(em *entity.Manager) error
+		WillLeaveManager() error
 	}
 )
-
-func (t *Trigger) Update(t common.Time) {
-	// @@TODO
-	for eid, cmpts := range entities {
-	}
-}

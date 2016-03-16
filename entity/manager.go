@@ -10,7 +10,7 @@ import (
 type (
 	Manager struct {
 		systems       []ISystem
-		entities      []Entity
+		entities      []entityRecord
 		componentSets map[ComponentKind]IComponentSet
 
 		templateCache *TemplateCache
@@ -21,6 +21,12 @@ type (
 
 		idCounter ID
 		usedIDs   map[ID]bool
+	}
+
+	entityRecord struct {
+		id             ID
+		mask           ComponentMask
+		componentKinds []ComponentKind
 	}
 )
 
@@ -40,7 +46,7 @@ func NewManager(fs assetsys.IFilesystem, systems []ISystem) *Manager {
 
 	m := &Manager{
 		systems:       systems,
-		entities:      []Entity{},
+		entities:      []entityRecord{},
 		cullable:      []ID{},
 		usedIDs:       map[ID]bool{},
 		entityFactory: entityFactory,
@@ -76,10 +82,6 @@ func (m *Manager) setIDUsed(eid ID) {
 	}
 }
 
-// func (m *Manager) GetEntityComponent(eid ID, cmptName string) (IComponent, error) {
-//     m.GetComponentSet(cmptName)
-// }
-
 func (m *Manager) GetComponentSet(name string) (IComponentSet, error) {
 	cmptType, exists := m.cmptRegistry.GetComponentType(name)
 	if !exists {
@@ -97,8 +99,8 @@ func (m *Manager) GetComponentSet(name string) (IComponentSet, error) {
 func (m *Manager) EntitiesMatching(cmptMask ComponentMask) []ID {
 	matching := make([]ID, 0)
 	for _, ent := range m.entities {
-		if ent.ComponentMask.HasAll(cmptMask) {
-			matching = append(matching, ent.ID)
+		if ent.mask.HasAll(cmptMask) {
+			matching = append(matching, ent.id)
 		}
 	}
 	return matching
@@ -143,9 +145,8 @@ func (m *Manager) EntityFromConfig(config map[string]interface{}) (Entity, error
 	return entity, nil
 }
 
-func (m *Manager) SetEntity(entity Entity) {
-	m.entities = append(m.entities, entity)
-	// m.setIDUsed(eid)
+func (m *Manager) AddEntity(entity Entity) {
+	m.entities = append(m.entities, entityRecord{id: entity.ID, mask: entity.ComponentMask, componentKinds: entity.ComponentKinds})
 
 	for i, cmpt := range entity.Components {
 		kind := entity.ComponentKinds[i]
@@ -161,7 +162,7 @@ func (m *Manager) CullEntities() {
 	for _, eid := range m.cullable {
 		removedIdx := -1
 		for i := range m.entities {
-			if m.entities[i].ID == eid {
+			if m.entities[i].id == eid {
 				removedIdx = i
 				break
 			}
@@ -169,15 +170,11 @@ func (m *Manager) CullEntities() {
 
 		if removedIdx >= 0 {
 			ent := m.entities[removedIdx]
-			for _, kind := range ent.ComponentKinds {
+			for _, kind := range ent.componentKinds {
 				m.componentSets[kind].Remove(eid)
 			}
 
 			m.entities = append(m.entities[:removedIdx], m.entities[removedIdx+1:]...)
-
-			// for _, sys := range m.systems {
-			// 	sys.EntityComponentsChanged(eid, []IComponent{})
-			// }
 		}
 	}
 	m.cullable = []ID{}

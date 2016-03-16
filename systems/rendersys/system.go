@@ -70,14 +70,15 @@ func (s *System) Update(t common.Time) {
 	positionCmptSlice := s.positionCmptSet.Slice().(positionsys.ComponentSlice)
 
 	for i := 0; i < len(renderCmptIdxs); i++ {
-		if renderCmptSlice[renderCmptIdxs[i]].renderNode == nil {
-			node, err := s.nodeFactory.NodeFromConfig(renderCmptSlice[renderCmptIdxs[i]].NodeType, renderCmptSlice[renderCmptIdxs[i]].NodeConfig)
+		idx := renderCmptIdxs[i]
+		if renderCmptSlice[idx].renderNode == nil {
+			node, err := s.nodeFactory.NodeFromConfig(renderCmptSlice[idx].NodeType, renderCmptSlice[idx].NodeConfig)
 			if err != nil {
 				// @@TODO
 				panic(err.Error())
 			}
 
-			renderCmptSlice[renderCmptIdxs[i]].renderNode = node
+			renderCmptSlice[idx].renderNode = node
 		}
 	}
 
@@ -127,64 +128,6 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 	}
 	s.positionCmptSet = positionCmptSet
 }
-
-// func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
-// 	var positionCmpt *positionsys.Component
-// 	var renderCmpt *Component
-
-// 	for _, cmpt := range components {
-// 		if rc, is := cmpt.(*Component); is {
-// 			renderCmpt = rc
-// 		} else if pc, is := cmpt.(*positionsys.Component); is {
-// 			positionCmpt = pc
-// 		}
-
-// 		if positionCmpt != nil && renderCmpt != nil {
-// 			break
-// 		}
-// 	}
-
-// 	if renderCmpt != nil && positionCmpt != nil {
-// 		if _, exists := s.entityMap[eid]; !exists {
-// 			// initialize the render node on the `renderCmpt`
-// 			node, err := s.nodeFactory.NodeFromConfig(renderCmpt.NodeType, renderCmpt.NodeConfig)
-// 			if err != nil {
-// 				// @@TODO
-// 				panic(err.Error())
-// 			}
-
-// 			renderCmpt.renderNode = node
-
-// 			s.entities = append(s.entities, entityAspect{
-// 				id:           eid,
-// 				positionCmpt: positionCmpt,
-// 				renderCmpt:   renderCmpt,
-// 			})
-
-// 			s.entityMap[eid] = &s.entities[len(s.entities)-1]
-// 		}
-
-// 	} else {
-// 		if _, exists := s.entityMap[eid]; exists {
-// 			idx := -1
-// 			for i := range s.entities {
-// 				if s.entities[i].id == eid {
-// 					idx = i
-// 					break
-// 				}
-// 			}
-
-// 			if idx >= 0 {
-// 				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
-// 			}
-
-// 			delete(s.entityMap, eid)
-// 		}
-// 	}
-
-// 	// sort entities by z-index every time entity/component list changes
-// 	sort.Sort(sortableEntities(s.entities))
-// }
 
 type sortableEntities []entityAspect
 

@@ -18,6 +18,7 @@ import (
 	"github.com/brynbellomy/gl4-game/systems/inputsys"
 	"github.com/brynbellomy/gl4-game/systems/movesys"
 	"github.com/brynbellomy/gl4-game/systems/physicssys"
+	"github.com/brynbellomy/gl4-game/systems/physicssys/physicstriggers"
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
 	"github.com/brynbellomy/gl4-game/systems/projectilesys"
 	"github.com/brynbellomy/gl4-game/systems/rendersys"
@@ -25,6 +26,7 @@ import (
 	"github.com/brynbellomy/gl4-game/systems/rendersys/texture"
 	"github.com/brynbellomy/gl4-game/systems/spritesys"
 	"github.com/brynbellomy/gl4-game/systems/tagsys"
+	"github.com/brynbellomy/gl4-game/systems/triggersys"
 )
 
 type (
@@ -56,6 +58,7 @@ type (
 		gameobjSystem    *gameobjsys.System
 		moveSystem       *movesys.System
 		projectileSystem *projectilesys.System
+		triggerSystem    *triggersys.System
 	}
 )
 
@@ -99,7 +102,11 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		gameobjSystem    = gameobjsys.New()
 		moveSystem       = movesys.New()
 		projectileSystem = projectilesys.New()
+		triggerSystem    = triggersys.New()
 	)
+
+	triggerSystem.RegisterConditionType("touching", &physicstriggers.TouchingCondition{})
+	triggerSystem.RegisterEffectType("debug", &triggersys.DebugEffect{})
 
 	var (
 		inputMapper  = &InputMapper{}
@@ -118,6 +125,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			gameobjSystem,
 			moveSystem,
 			projectileSystem,
+			triggerSystem,
 		})
 
 		mainScene = &MainScene{
@@ -137,6 +145,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			gameobjSystem:    gameobjSystem,
 			moveSystem:       moveSystem,
 			projectileSystem: projectileSystem,
+			triggerSystem:    triggerSystem,
 
 			inputSystem:  inputSystem,
 			inputHandler: inputHandler,
@@ -210,7 +219,7 @@ func (s *MainScene) loadScene() error {
 			return err
 		}
 
-		s.entityManager.SetEntity(ent)
+		s.entityManager.AddEntity(ent)
 	}
 
 	return nil
@@ -307,7 +316,7 @@ func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon)
 		}
 	}
 
-	s.entityManager.SetEntity(fireballEnt)
+	s.entityManager.AddEntity(fireballEnt)
 }
 
 func (s *MainScene) Update() {
@@ -315,6 +324,7 @@ func (s *MainScene) Update() {
 
 	s.inputSystem.Update(t)
 
+	s.triggerSystem.Update(t)
 	s.gameobjSystem.Update(t)
 	s.projectileSystem.Update(t)
 	s.moveSystem.Update(t)

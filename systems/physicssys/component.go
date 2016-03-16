@@ -17,25 +17,10 @@ type (
 		Collisions    []Collision `config:"collisions"`
 		CollisionMask uint64      `config:"collisionMask"`
 		CollidesWith  uint64      `config:"collidesWith"`
-
-		entity.ComponentKind `config:"-"`
 	}
 
 	ComponentSlice []Component
 )
-
-func NewComponent(velocity mgl32.Vec2, maxVelocity float32, totalCurrentForce mgl32.Vec2, boundingBox BoundingBox, collisionMask uint64, collidesWith uint64) *Component {
-	return &Component{
-		Velocity:              velocity,
-		MaxVelocity:           maxVelocity,
-		TotalCurrentForce:     totalCurrentForce,
-		InstantaneousVelocity: mgl32.Vec2{0, 0},
-		BoundingBox:           boundingBox,
-		CollisionMask:         collisionMask,
-		CollidesWith:          collidesWith,
-		Collisions:            []Collision{},
-	}
-}
 
 func (c *Component) GetVelocity() mgl32.Vec2 {
 	return c.Velocity

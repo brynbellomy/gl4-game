@@ -74,7 +74,11 @@ entities:
         -   type: move
             config:
                 vector: [0, 0]
-
+        -   type: trigger
+            config:
+                triggers:
+                -   condition: { type: touching, config: { subjectID: 2 } }
+                    effect:    { type: debug,    config: {} }
 
 
     #
@@ -96,7 +100,7 @@ entities:
                 totalCurrentForce: [0, 0]
                 boundingBox: [[-0.1, -0.2], [-0.1, 0.2], [0.1, 0.2], [0.1, -0.2]]
                 collisionMask: 2
-                collidesWith: 0
+                collidesWith: 1
         -   type: render
             config:
                 nodeType: sprite
