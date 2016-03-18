@@ -1,7 +1,6 @@
 package rendersys
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -93,10 +92,19 @@ func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 	return map[string]entity.CmptTypeCfg{
 		"render": {
 			Coder: common.NewCoder(common.CoderConfig{
-				ConfigType: Component{},
+				ConfigType: ComponentCfg{},
 				Tag:        "config",
-				Decode:     func(x interface{}) (interface{}, error) { return x.(Component), nil },
-				Encode:     func(x interface{}) (interface{}, error) { /* @@TODO */ panic("unimplemented") },
+				Decode: func(x interface{}) (interface{}, error) {
+					cfg := x.(ComponentCfg)
+
+					node, err := s.nodeFactory.NodeFromConfig(cfg.NodeType, cfg.NodeConfig)
+					if err != nil {
+						return nil, err
+					}
+
+					return Component{renderNode: node, texture: 0}, nil
+				},
+				Encode: func(x interface{}) (interface{}, error) { /* @@TODO */ panic("unimplemented") },
 			}),
 			Slice: ComponentSlice{},
 		},
@@ -128,12 +136,11 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) error {
 	for i := range cmpts {
 		if cmpt, is := cmpts[i].(Component); is {
-			node, err := s.nodeFactory.NodeFromConfig(cmpt.NodeType, cmpt.NodeConfig)
-			if err != nil {
-				return err
-			}
+            err := cmpt.renderNode.Init()
+            if err != nil {
+                return err
+            }
 
-			cmpt.renderNode = node
 			cmpts[i] = cmpt
 		}
 	}
@@ -144,7 +151,10 @@ func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) er
 func (s *System) ComponentsWillLeave(eid entity.ID, cmpts []entity.IComponent) error {
 	for i := range cmpts {
 		if cmpt, is := cmpts[i].(Component); is {
-			err := cmpt.renderNode.Destroy()
+            rn := cmpt.renderNode
+			cmpt.renderNode = nil
+
+            err := rn.Destroy()
 			if err != nil {
 				return err
 			}

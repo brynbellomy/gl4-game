@@ -9,6 +9,7 @@ import (
 
 type (
 	INode interface {
+        Init() error
 		Render(c RenderContext)
 		Destroy() error
 

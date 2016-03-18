@@ -1,6 +1,7 @@
 package rendersys
 
 import (
+"fmt"
 	"errors"
 	_ "image/png"
 
@@ -53,7 +54,11 @@ type (
 )
 
 func NewSpriteNode(p shader.Program) (*SpriteNode, error) {
-	program := uint32(p)
+    return &SpriteNode{program: p}, nil
+}
+
+func (n *SpriteNode) Init() error {
+	program := uint32(n.program)
 
 	projectionUniform := gl.GetUniformLocation(program, gl.Str("projection\x00"))
 	cameraUniform := gl.GetUniformLocation(program, gl.Str("camera\x00"))
@@ -85,65 +90,38 @@ func NewSpriteNode(p shader.Program) (*SpriteNode, error) {
 		gl.VertexAttribPointer(texCoordAttrib, 2, gl.FLOAT, false, 5*4, gl.PtrOffset(3*4))
 	}
 
-	return &SpriteNode{
-		program:     p,
-		vao:         vao,
-		uCamera:     cameraUniform,
-		uModel:      modelUniform,
-		uProjection: projectionUniform,
-	}, nil
+    n.vao = vao
+    n.uCamera = cameraUniform
+    n.uModel = modelUniform
+    n.uProjection = projectionUniform
 
-	// program := uint32(p)
-	// gl.UseProgram(program)
+    return nil
+}
 
-	// projectionUniform := gl.GetUniformLocation(program, gl.Str("projection\x00"))
-	// cameraUniform := gl.GetUniformLocation(program, gl.Str("camera\x00"))
-	// modelUniform := gl.GetUniformLocation(program, gl.Str("model\x00"))
-	// textureUniform := gl.GetUniformLocation(program, gl.Str("tex\x00"))
+func (n *SpriteNode) Render(c RenderContext) {
+    gl.UseProgram(uint32(n.program))
 
-	// defaultProjection := mgl32.Ident4()
-	// gl.UniformMatrix4fv(projectionUniform, 1, false, &defaultProjection[0])
-	// defaultCamera := mgl32.Ident4()
-	// gl.UniformMatrix4fv(cameraUniform, 1, false, &defaultCamera[0])
-	// defaultModel := mgl32.Ident4()
-	// gl.UniformMatrix4fv(modelUniform, 1, false, &defaultModel[0])
-	// gl.Uniform1i(textureUniform, 0)
+    trans := mgl32.Translate3D(n.position.X(), n.position.Y(), 0.0)
+    rotate := mgl32.Rotate3DZ(n.rotation).Mat4()
+    scale := mgl32.Scale3D(n.size.Width(), n.size.Height(), 1.0)
 
-	// gl.BindFragDataLocation(program, 0, gl.Str("outputColor\x00"))
+    model := trans.Mul4(rotate).Mul4(scale)
 
-	// var vao uint32
-	// gl.GenVertexArrays(1, &vao)
-	// gl.BindVertexArray(vao)
+    gl.UniformMatrix4fv(n.uModel, 1, false, &model[0])
+    gl.UniformMatrix4fv(n.uCamera, 1, false, &c.Camera[0])
+    gl.UniformMatrix4fv(n.uProjection, 1, false, &c.Projection[0])
 
-	// // Configure the vertex data
-	// vertices := common.Rect(common.Size{1.0, 1.0})
+    gl.BindVertexArray(n.vao)
 
-	// var vbo uint32
-	// gl.GenBuffers(1, &vbo)
-	// gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	// gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4, gl.Ptr(vertices), gl.STATIC_DRAW)
+    gl.ActiveTexture(gl.TEXTURE0)
+    gl.BindTexture(gl.TEXTURE_2D, n.texture)
 
-	// vertAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vert\x00")))
-	// gl.EnableVertexAttribArray(vertAttrib)
-	// gl.VertexAttribPointer(vertAttrib, 3, gl.FLOAT, false, 5*4, gl.PtrOffset(0))
-
-	// texCoordAttrib := uint32(gl.GetAttribLocation(program, gl.Str("vertTexCoord\x00")))
-	// gl.EnableVertexAttribArray(texCoordAttrib)
-	// gl.VertexAttribPointer(texCoordAttrib, 2, gl.FLOAT, false, 5*4, gl.PtrOffset(3*4))
-
-	// return &SpriteNode{
-	// 	program:  p,
-	// 	vao:      vao,
-	// 	uCamera:  cameraUniform,
-	// 	uModel:   modelUniform,
-	// 	uTexture: textureUniform,
-	// }, nil
+    gl.DrawArrays(gl.TRIANGLES, 0, 6*2*3)
 }
 
 func (n *SpriteNode) Destroy() error {
 	// @@TODO
 	// release textures, etc?
-    fmt.Println("SpriteNode.Destroy()")
 	return nil
 }
 
@@ -163,23 +141,3 @@ func (n *SpriteNode) SetTexture(tex uint32) {
 	n.texture = tex
 }
 
-func (n *SpriteNode) Render(c RenderContext) {
-	gl.UseProgram(uint32(n.program))
-
-	trans := mgl32.Translate3D(n.position.X(), n.position.Y(), 0.0)
-	rotate := mgl32.Rotate3DZ(n.rotation).Mat4()
-	scale := mgl32.Scale3D(n.size.Width(), n.size.Height(), 1.0)
-
-	model := trans.Mul4(rotate).Mul4(scale)
-
-	gl.UniformMatrix4fv(n.uModel, 1, false, &model[0])
-	gl.UniformMatrix4fv(n.uCamera, 1, false, &c.Camera[0])
-	gl.UniformMatrix4fv(n.uProjection, 1, false, &c.Projection[0])
-
-	gl.BindVertexArray(n.vao)
-
-	gl.ActiveTexture(gl.TEXTURE0)
-	gl.BindTexture(gl.TEXTURE_2D, n.texture)
-
-	gl.DrawArrays(gl.TRIANGLES, 0, 6*2*3)
-}
