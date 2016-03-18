@@ -42,8 +42,8 @@ func (f *EntityFactory) EntityFromConfig(cfg map[string]interface{}) (Entity, er
 			return Entity{}, errors.New("error deserializing component from config: " + err.Error())
 		}
 		cmpts[i] = cmpt
-		mask = mask.Add(kind)
 		kinds[i] = kind
+		mask = mask.Add(kind)
 	}
 
 	return Entity{ID: config.ID, ComponentMask: mask, ComponentKinds: kinds, Components: cmpts}, nil

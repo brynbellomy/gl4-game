@@ -2,7 +2,6 @@ package entity
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/brynbellomy/go-structomancer"
 )
@@ -48,17 +47,10 @@ func (f *ComponentFactory) ComponentFromConfig(cmptcfg map[string]interface{}) (
 		return nil, 0, errors.New("error deserializing component (type = " + cfg.Type + "): config is nil")
 	}
 
-	cmpt, err := ctype.DeserializeConfig(cfg.Config)
+	cmpt, err := ctype.Coder.Decode(cfg.Config)
 	if err != nil {
 		return nil, 0, errors.New("error deserializing component (type = " + cfg.Type + ")" + err.Error())
 	}
 
-	if cfg.Type == "trigger" {
-		fmt.Printf("TRIGGER CMPT CONFIG ~> %+v\n", cfg.Config)
-		fmt.Printf("TRIGGER CMPT ~> %+v\n", cmpt)
-	}
-
-	// cmpt.(IComponent).SetKind(ctype.kind)
-
-	return cmpt.(IComponent), ctype.kind, nil
+	return cmpt.(IComponent), ctype.Kind, nil
 }

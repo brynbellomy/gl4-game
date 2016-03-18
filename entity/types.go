@@ -8,12 +8,14 @@ type (
 	ISystem interface {
 		WillJoinManager(em *Manager)
 		ComponentTypes() map[string]CmptTypeCfg
+		ComponentsWillJoin(eid ID, cmpts []IComponent) error
+		ComponentsWillLeave(eid ID, cmpts []IComponent) error
 		Update(t common.Time)
 	}
 
 	CmptTypeCfg struct {
-		Cmpt      IComponent
-		CmptSlice IComponentSlice
+		Coder *common.Coder
+		Slice IComponentSlice
 	}
 
 	ID int64

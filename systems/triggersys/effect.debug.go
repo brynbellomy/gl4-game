@@ -8,20 +8,24 @@ import (
 )
 
 type (
-	DebugEffect struct{}
+	DebugEffect struct {
+		eid entity.ID
+	}
 )
 
 func (e *DebugEffect) Execute(t common.Time, targets []entity.ID) error {
-	fmt.Printf("DEBUG: targets = %v\n", targets)
+	if len(targets) > 0 {
+		fmt.Printf("DEBUG: entity = %v, targets = %v\n", e.eid, targets)
+	}
 	return nil
 }
 
-func (e *DebugEffect) WillJoinManager(em *entity.Manager) error {
-	// no-op
+func (e *DebugEffect) WillJoinManager(em *entity.Manager, eid entity.ID) error {
+	e.eid = eid
 	return nil
 }
 
 func (e *DebugEffect) WillLeaveManager() error {
-	// no-op
+	e.eid = entity.InvalidID
 	return nil
 }

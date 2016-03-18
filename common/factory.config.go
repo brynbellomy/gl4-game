@@ -8,11 +8,7 @@ import (
 
 type (
 	ConfigFactory struct {
-		configTypes map[string]configType
-	}
-
-	configType struct {
-		z *structomancer.Structomancer
+		configTypes map[string]*Coder
 	}
 
 	configWrapper struct {
@@ -25,15 +21,15 @@ var configWrapperType = structomancer.New(&configWrapper{}, "config")
 
 func NewConfigFactory() *ConfigFactory {
 	return &ConfigFactory{
-		configTypes: map[string]configType{},
+		configTypes: map[string]*Coder{},
 	}
 }
 
-func (f *ConfigFactory) Register(name string, specimen interface{}) {
-	f.configTypes[name] = configType{z: structomancer.New(specimen, "config")}
+func (f *ConfigFactory) Register(name string, coder *Coder) {
+	f.configTypes[name] = coder
 }
 
-func (f *ConfigFactory) Build(data map[string]interface{}) (interface{}, error) {
+func (f *ConfigFactory) Decode(data map[string]interface{}) (interface{}, error) {
 	c, err := configWrapperType.MapToStruct(data)
 	if err != nil {
 		return nil, err
@@ -46,15 +42,19 @@ func (f *ConfigFactory) Build(data map[string]interface{}) (interface{}, error) 
 		return nil, errors.New("missing 'config' key")
 	}
 
-	ctype, exists := f.configTypes[cfg.Type]
+	coder, exists := f.configTypes[cfg.Type]
 	if !exists {
 		return nil, errors.New("config type '" + cfg.Type + "' is not registered")
 	}
 
-	config, err := ctype.z.MapToStruct(cfg.Config)
+	thing, err := coder.Decode(cfg.Config)
 	if err != nil {
-		return nil, errors.New("error deserializing config (type = " + cfg.Type + ")" + err.Error())
+		return nil, errors.New("error deserializing config (type = " + cfg.Type + "): " + err.Error())
 	}
 
-	return config, nil
+	return thing, nil
+}
+
+func (f *ConfigFactory) Encode(data map[string]interface{}) (interface{}, error) {
+	panic("not implemented")
 }

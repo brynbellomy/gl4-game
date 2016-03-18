@@ -23,11 +23,9 @@ type (
 		Remove(eid ID) error
 		Get(eid ID) (IComponent, error)
 		Set(eid ID, cmpt IComponent) error
-		Indices(entityIDs []ID) ([]int, error)
-		IDForIndex(idx int) (ID, bool)
+		Indices(eids []ID) ([]int, error)
+		IDForIndex(i int) (ID, bool)
 		Slice() interface{}
-
-		DebugIdxMap() map[ID]int
 	}
 )
 
@@ -36,10 +34,6 @@ func NewComponentSet(cmptSlice IComponentSlice) IComponentSet {
 		components: cmptSlice,
 		idxMap:     map[ID]int{},
 	}
-}
-
-func (cs *ComponentSet) DebugIdxMap() map[ID]int {
-	return cs.idxMap
 }
 
 func (cs *ComponentSet) IDForIndex(idx int) (ID, bool) {

@@ -13,13 +13,13 @@ type (
 
 	ICondition interface {
 		GetMatches(t common.Time) ([]entity.ID, error)
-		WillJoinManager(em *entity.Manager) error
+		WillJoinManager(em *entity.Manager, eid entity.ID) error
 		WillLeaveManager() error
 	}
 
 	IEffect interface {
 		Execute(t common.Time, targets []entity.ID) error
-		WillJoinManager(em *entity.Manager) error
+		WillJoinManager(em *entity.Manager, eid entity.ID) error
 		WillLeaveManager() error
 	}
 )

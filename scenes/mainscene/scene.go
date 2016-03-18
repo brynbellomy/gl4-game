@@ -18,7 +18,6 @@ import (
 	"github.com/brynbellomy/gl4-game/systems/inputsys"
 	"github.com/brynbellomy/gl4-game/systems/movesys"
 	"github.com/brynbellomy/gl4-game/systems/physicssys"
-	"github.com/brynbellomy/gl4-game/systems/physicssys/physicstriggers"
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
 	"github.com/brynbellomy/gl4-game/systems/projectilesys"
 	"github.com/brynbellomy/gl4-game/systems/rendersys"
@@ -104,9 +103,6 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		projectileSystem = projectilesys.New()
 		triggerSystem    = triggersys.New()
 	)
-
-	triggerSystem.RegisterConditionType("touching", &physicstriggers.TouchingCondition{})
-	triggerSystem.RegisterEffectType("debug", &triggersys.DebugEffect{})
 
 	var (
 		inputMapper  = &InputMapper{}
@@ -214,12 +210,15 @@ func (s *MainScene) loadScene() error {
 
 	// deserialize all entities and add them to the scene
 	for _, entcfg := range sceneData.Entities {
-		ent, err := s.entityManager.EntityFromConfig(entcfg)
+		ent, err := s.entityManager.MakeEntityFromConfig(entcfg)
 		if err != nil {
 			return err
 		}
 
-		s.entityManager.AddEntity(ent)
+		err = s.entityManager.AddEntity(ent)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -298,7 +297,7 @@ func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon)
 	pos := pc.GetPos()
 	vec := targetPos.Sub(pos)
 
-	fireballEnt, err := s.entityManager.EntityFromTemplate("fireball")
+	fireballEnt, err := s.entityManager.MakeEntityFromTemplate("fireball")
 	if err != nil {
 		// @@TODO
 		panic(err)
@@ -316,7 +315,11 @@ func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon)
 		}
 	}
 
-	s.entityManager.AddEntity(fireballEnt)
+	err = s.entityManager.AddEntity(fireballEnt)
+	if err != nil {
+		// @@TODO
+		panic(err)
+	}
 }
 
 func (s *MainScene) Update() {

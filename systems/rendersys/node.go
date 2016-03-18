@@ -10,6 +10,7 @@ import (
 type (
 	INode interface {
 		Render(c RenderContext)
+		Destroy() error
 
 		SetPos(p mgl32.Vec2)
 		SetSize(s common.Size)

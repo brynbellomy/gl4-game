@@ -1,6 +1,8 @@
 package tagsys
 
 import (
+	"fmt"
+
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
 )
@@ -14,6 +16,9 @@ type (
 		idsByTag map[string]entity.ID
 	}
 )
+
+// ensure that System conforms to entity.ISystem
+var _ entity.ISystem = &System{}
 
 func New() *System {
 	return &System{
@@ -37,7 +42,15 @@ func (s *System) Update(t common.Time) {
 
 func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 	return map[string]entity.CmptTypeCfg{
-		"tag": {Component{}, ComponentSlice{}},
+		"tag": {
+			Coder: common.NewCoder(common.CoderConfig{
+				ConfigType: Component{},
+				Tag:        "config",
+				Decode:     func(x interface{}) (interface{}, error) { return x.(Component), nil },
+				Encode:     func(x interface{}) (interface{}, error) { /* @@TODO */ panic("unimplemented") },
+			}),
+			Slice: ComponentSlice{},
+		},
 	}
 }
 
@@ -57,45 +70,22 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 	s.tagCmptSet = tagCmptSet
 }
 
-// func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
-// 	var tagCmpt *Component
+func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) error {
+	// no-op
+	return nil
+}
 
-// 	for _, cmpt := range components {
-// 		if ac, is := cmpt.(*Component); is {
-// 			tagCmpt = ac
-// 		}
+func (s *System) ComponentsWillLeave(eid entity.ID, cmpts []entity.IComponent) error {
+	for _, cmpt := range cmpts {
+		if cmpt, is := cmpt.(Component); is {
+			tag := cmpt.GetTag()
 
-// 		if tagCmpt != nil {
-// 			break
-// 		}
-// 	}
-
-// 	if tagCmpt != nil {
-// 		if _, exists := s.entityMap[eid]; !exists {
-// 			s.entities = append(s.entities, entityAspect{
-// 				id:      eid,
-// 				tagCmpt: tagCmpt,
-// 			})
-
-// 			s.idsByTag[tagCmpt.GetTag()] = eid
-// 			s.entityMap[eid] = &s.entities[len(s.entities)-1]
-// 		}
-
-// 	} else {
-// 		if _, exists := s.entityMap[eid]; exists {
-// 			idx := -1
-// 			for i := range s.entities {
-// 				if s.entities[i].id == eid {
-// 					idx = i
-// 					break
-// 				}
-// 			}
-
-// 			if idx >= 0 {
-// 				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
-// 			}
-
-// 			delete(s.entityMap, eid)
-// 		}
-// 	}
-// }
+			if s.idsByTag[tag] == eid {
+				delete(s.idsByTag, tag)
+			} else {
+				return fmt.Errorf("tagsys.System.ComponentsWillLeave: another entity claims this tag (eid: %v, other eid: %v, tag: %v)", eid, s.idsByTag[tag], tag)
+			}
+		}
+	}
+	return nil
+}

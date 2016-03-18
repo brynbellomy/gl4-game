@@ -140,6 +140,13 @@ func NewSpriteNode(p shader.Program) (*SpriteNode, error) {
 	// }, nil
 }
 
+func (n *SpriteNode) Destroy() error {
+	// @@TODO
+	// release textures, etc?
+    fmt.Println("SpriteNode.Destroy()")
+	return nil
+}
+
 func (n *SpriteNode) SetPos(pos mgl32.Vec2) {
 	n.position = pos
 }

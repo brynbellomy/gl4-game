@@ -6,9 +6,7 @@ import (
 
 type (
 	Component struct {
-		Triggers []Trigger `config:"-"`
-
-		TriggersConfig []*TriggerConfig `config:"triggers"`
+		Triggers []Trigger
 	}
 
 	Trigger struct {
@@ -16,9 +14,11 @@ type (
 		Effect    IEffect
 	}
 
-	TriggerConfig struct {
-		Condition map[string]interface{} `config:"condition"`
-		Effect    map[string]interface{} `config:"effect"`
+	ComponentCfg struct {
+		TriggersConfig []*struct {
+			Condition map[string]interface{} `config:"condition"`
+			Effect    map[string]interface{} `config:"effect"`
+		} `config:"triggers"`
 	}
 
 	ComponentSlice []Component

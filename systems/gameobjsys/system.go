@@ -19,6 +19,9 @@ type (
 	}
 )
 
+// ensure that System conforms to entity.ISystem
+var _ entity.ISystem = &System{}
+
 func New() *System {
 	return &System{}
 }
@@ -74,7 +77,15 @@ func (s *System) Update(t common.Time) {
 
 func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 	return map[string]entity.CmptTypeCfg{
-		"gameobj": {Component{}, ComponentSlice{}},
+		"gameobj": {
+			Coder: common.NewCoder(common.CoderConfig{
+				ConfigType: Component{},
+				Tag:        "config",
+				Decode:     func(x interface{}) (interface{}, error) { return x.(Component), nil },
+				Encode:     func(x interface{}) (interface{}, error) { /* @@TODO */ panic("unimplemented") },
+			}),
+			Slice: ComponentSlice{},
+		},
 	}
 }
 
@@ -106,77 +117,12 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 	s.moveCmptSet = moveCmptSet
 }
 
-// func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
-// 	var gameobjCmpt *Component
-// 	var moveCmpt *movesys.Component
-// 	var animationCmpt *animationsys.Component
+func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) error {
+	// no-op
+	return nil
+}
 
-// 	for _, cmpt := range components {
-// 		if ac, is := cmpt.(*Component); is {
-// 			gameobjCmpt = ac
-// 		} else if rc, is := cmpt.(*animationsys.Component); is {
-// 			animationCmpt = rc
-// 		} else if pc, is := cmpt.(*movesys.Component); is {
-// 			moveCmpt = pc
-// 		}
-
-// 		if gameobjCmpt != nil && animationCmpt != nil && moveCmpt != nil {
-// 			break
-// 		}
-// 	}
-
-// 	if gameobjCmpt != nil && animationCmpt != nil && moveCmpt != nil {
-// 		if _, exists := s.entityMap[eid]; !exists {
-// 			s.entities = append(s.entities, entityAspect{
-// 				id:            eid,
-// 				gameobjCmpt:   gameobjCmpt,
-// 				animationCmpt: animationCmpt,
-// 				moveCmpt:      moveCmpt,
-// 			})
-
-// 			s.entityMap[eid] = &s.entities[len(s.entities)-1]
-// 		}
-
-// 	} else {
-// 		if _, exists := s.entityMap[eid]; exists {
-// 			idx := -1
-// 			for i := range s.entities {
-// 				if s.entities[i].id == eid {
-// 					idx = i
-// 					break
-// 				}
-// 			}
-
-// 			if idx >= 0 {
-// 				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
-// 			}
-
-// 			delete(s.entityMap, eid)
-// 		}
-// 	}
-// }
-
-// func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
-// 	remove := false
-// 	for _, cmpt := range components {
-// 		switch cmpt.(type) {
-// 		case *Component, *animationsys.Component, *movesys.Component:
-// 			remove = true
-// 			break
-// 		}
-// 	}
-
-// 	if remove {
-// 		removedIdx := -1
-// 		for i := range s.entities {
-// 			if s.entities[i].id == eid {
-// 				removedIdx = i
-// 				break
-// 			}
-// 		}
-// 		if removedIdx >= 0 {
-// 			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
-// 		}
-// 		delete(s.entityMap, eid)
-// 	}
-// }
+func (s *System) ComponentsWillLeave(eid entity.ID, cmpts []entity.IComponent) error {
+	// no-op
+	return nil
+}

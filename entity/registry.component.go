@@ -3,19 +3,25 @@ package entity
 import (
 	"fmt"
 
-	"github.com/brynbellomy/go-structomancer"
+	"github.com/brynbellomy/gl4-game/common"
 )
 
 type (
 	ComponentRegistry struct {
-		componentTypes map[string]CmptType
+		componentTypes map[string]CmptRegistryEntry
 		kindCounter    uint64
+	}
+
+	CmptRegistryEntry struct {
+		Name  string
+		Kind  ComponentKind
+		Coder *common.Coder
 	}
 )
 
 func NewComponentRegistry() *ComponentRegistry {
 	return &ComponentRegistry{
-		componentTypes: map[string]CmptType{},
+		componentTypes: map[string]CmptRegistryEntry{},
 		kindCounter:    0,
 	}
 }
@@ -29,13 +35,13 @@ func (r *ComponentRegistry) nextComponentKind() ComponentKind {
 	return ComponentKind(next)
 }
 
-func (r *ComponentRegistry) RegisterComponentType(typeName string, cmpt IComponent) ComponentKind {
+func (r *ComponentRegistry) RegisterComponentType(typeName string, coder *common.Coder) ComponentKind {
 	kind := r.nextComponentKind()
 
-	r.componentTypes[typeName] = CmptType{
-		name: typeName,
-		kind: kind,
-		z:    structomancer.New(cmpt, "config"),
+	r.componentTypes[typeName] = CmptRegistryEntry{
+		Name:  typeName,
+		Kind:  kind,
+		Coder: coder,
 	}
 
 	fmt.Printf("Registering component type '%s' (kind = %d)\n", typeName, kind)
@@ -43,23 +49,7 @@ func (r *ComponentRegistry) RegisterComponentType(typeName string, cmpt ICompone
 	return kind
 }
 
-func (r *ComponentRegistry) GetComponentType(typeName string) (CmptType, bool) {
+func (r *ComponentRegistry) GetComponentType(typeName string) (CmptRegistryEntry, bool) {
 	k, exists := r.componentTypes[typeName]
 	return k, exists
-}
-
-type (
-	CmptType struct {
-		name string
-		kind ComponentKind
-		z    *structomancer.Structomancer
-	}
-)
-
-func (c CmptType) Kind() ComponentKind {
-	return c.kind
-}
-
-func (c CmptType) DeserializeConfig(cfg map[string]interface{}) (interface{}, error) {
-	return c.z.MapToStruct(cfg)
 }

@@ -1,6 +1,7 @@
 package rendersys
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -69,19 +70,6 @@ func (s *System) Update(t common.Time) {
 	renderCmptSlice := s.renderCmptSet.Slice().(ComponentSlice)
 	positionCmptSlice := s.positionCmptSet.Slice().(positionsys.ComponentSlice)
 
-	for i := 0; i < len(renderCmptIdxs); i++ {
-		idx := renderCmptIdxs[i]
-		if renderCmptSlice[idx].renderNode == nil {
-			node, err := s.nodeFactory.NodeFromConfig(renderCmptSlice[idx].NodeType, renderCmptSlice[idx].NodeConfig)
-			if err != nil {
-				// @@TODO
-				panic(err.Error())
-			}
-
-			renderCmptSlice[idx].renderNode = node
-		}
-	}
-
 	aspects := make([]entityAspect, len(renderCmptIdxs))
 	for i := 0; i < len(aspects); i++ {
 		aspects[i].id = matchIDs[i]
@@ -103,7 +91,15 @@ func (s *System) Update(t common.Time) {
 
 func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 	return map[string]entity.CmptTypeCfg{
-		"render": {Component{}, ComponentSlice{}},
+		"render": {
+			Coder: common.NewCoder(common.CoderConfig{
+				ConfigType: Component{},
+				Tag:        "config",
+				Decode:     func(x interface{}) (interface{}, error) { return x.(Component), nil },
+				Encode:     func(x interface{}) (interface{}, error) { /* @@TODO */ panic("unimplemented") },
+			}),
+			Slice: ComponentSlice{},
+		},
 	}
 }
 
@@ -127,6 +123,35 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 		panic(err)
 	}
 	s.positionCmptSet = positionCmptSet
+}
+
+func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) error {
+	for i := range cmpts {
+		if cmpt, is := cmpts[i].(Component); is {
+			node, err := s.nodeFactory.NodeFromConfig(cmpt.NodeType, cmpt.NodeConfig)
+			if err != nil {
+				return err
+			}
+
+			cmpt.renderNode = node
+			cmpts[i] = cmpt
+		}
+	}
+
+	return nil
+}
+
+func (s *System) ComponentsWillLeave(eid entity.ID, cmpts []entity.IComponent) error {
+	for i := range cmpts {
+		if cmpt, is := cmpts[i].(Component); is {
+			err := cmpt.renderNode.Destroy()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 type sortableEntities []entityAspect

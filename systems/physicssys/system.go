@@ -6,6 +6,7 @@ import (
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
 	"github.com/brynbellomy/gl4-game/systems/positionsys"
+	"github.com/brynbellomy/gl4-game/systems/triggersys"
 )
 
 type (
@@ -21,6 +22,9 @@ type (
 	}
 )
 
+// ensure that System conforms to entity.ISystem
+var _ entity.ISystem = &System{}
+
 func New() *System {
 	return &System{}
 }
@@ -28,14 +32,6 @@ func New() *System {
 func (s *System) OnCollision(fn func(c Collision)) {
 	s.onCollision = fn
 }
-
-// func (s *System) AddForce(eid entity.ID, f mgl32.Vec2) {
-// 	if e, exists := s.entityMap[eid]; exists {
-// 		e.physicsCmpt.AddForce(f)
-// 	} else {
-// 		panic("entity does not exist")
-// 	}
-// }
 
 func (s *System) Update(t common.Time) {
 	if s.previousTime == 0 {
@@ -181,7 +177,31 @@ func getMinMaxProjectedPoints(boundingBox BoundingBox, pos mgl32.Vec2, normal mg
 
 func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 	return map[string]entity.CmptTypeCfg{
-		"physics": {Component{}, ComponentSlice{}},
+		"physics": {
+			Coder: common.NewCoder(common.CoderConfig{
+				ConfigType: Component{},
+				Tag:        "config",
+				Decode:     func(x interface{}) (interface{}, error) { return x.(Component), nil },
+				Encode:     func(x interface{}) (interface{}, error) { /* @@TODO */ panic("unimplemented") },
+			}),
+			Slice: ComponentSlice{},
+		},
+	}
+}
+
+func (s *System) TriggerTypes() triggersys.TriggerTypes {
+	return triggersys.TriggerTypes{
+		Conditions: map[string]triggersys.ConditionTypeCfg{
+			"touching": {
+				Coder: common.NewCoder(common.CoderConfig{
+					ConfigType: &TouchingCondition{},
+					Tag:        "config",
+					Decode:     func(x interface{}) (interface{}, error) { return x.(*TouchingCondition), nil },
+					Encode:     func(x interface{}) (interface{}, error) { return x.(*TouchingCondition), nil },
+				}),
+			},
+		},
+		Effects: map[string]triggersys.EffectTypeCfg{},
 	}
 }
 
@@ -207,73 +227,12 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 	s.physicsCmptSet = physicsCmptSet
 }
 
-// func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
-// 	var physicsCmpt *Component
-// 	var positionCmpt *positionsys.Component
+func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) error {
+	// no-op
+	return nil
+}
 
-// 	for _, cmpt := range components {
-// 		if phc, is := cmpt.(*Component); is {
-// 			physicsCmpt = phc
-// 		} else if posc, is := cmpt.(*positionsys.Component); is {
-// 			positionCmpt = posc
-// 		}
-
-// 		if physicsCmpt != nil && positionCmpt != nil {
-// 			break
-// 		}
-// 	}
-
-// 	if physicsCmpt != nil && positionCmpt != nil {
-// 		if _, exists := s.entityMap[eid]; !exists {
-// 			s.entities = append(s.entities, entityAspect{
-// 				id:           eid,
-// 				physicsCmpt:  physicsCmpt,
-// 				positionCmpt: positionCmpt,
-// 			})
-
-// 			s.entityMap[eid] = &s.entities[len(s.entities)-1]
-// 		}
-
-// 	} else {
-// 		if _, exists := s.entityMap[eid]; exists {
-// 			idx := -1
-// 			for i := range s.entities {
-// 				if s.entities[i].id == eid {
-// 					idx = i
-// 					break
-// 				}
-// 			}
-
-// 			if idx >= 0 {
-// 				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
-// 			}
-
-// 			delete(s.entityMap, eid)
-// 		}
-// 	}
-// }
-
-// func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
-// 	remove := false
-// 	for _, cmpt := range components {
-// 		switch cmpt.(type) {
-// 		case *Component, *positionsys.Component:
-// 			remove = true
-// 			break
-// 		}
-// 	}
-
-// 	if remove {
-// 		removedIdx := -1
-// 		for i := range s.entities {
-// 			if s.entities[i].id == eid {
-// 				removedIdx = i
-// 				break
-// 			}
-// 		}
-// 		if removedIdx >= 0 {
-// 			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
-// 		}
-// 		delete(s.entityMap, eid)
-// 	}
-// }
+func (s *System) ComponentsWillLeave(eid entity.ID, cmpts []entity.IComponent) error {
+	// no-op
+	return nil
+}

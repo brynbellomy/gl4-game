@@ -6,9 +6,11 @@ import (
 
 type (
 	Component struct {
-		renderNode INode  `config:"-"`
-		texture    uint32 `config:"-"`
+		renderNode INode
+		texture    uint32
+	}
 
+	ComponentCfg struct {
 		NodeType   string                 `config:"nodeType"`
 		NodeConfig map[string]interface{} `config:"nodeConfig"`
 	}

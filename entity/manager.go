@@ -37,10 +37,9 @@ func NewManager(fs assetsys.IFilesystem, systems []ISystem) *Manager {
 
 	componentSets := map[ComponentKind]IComponentSet{}
 	for _, sys := range systems {
-		ctypes := sys.ComponentTypes()
-		for name, cmpt := range ctypes {
-			kind := cmptRegistry.RegisterComponentType(name, cmpt.Cmpt)
-			componentSets[kind] = NewComponentSet(cmpt.CmptSlice)
+		for name, cmpt := range sys.ComponentTypes() {
+			kind := cmptRegistry.RegisterComponentType(name, cmpt.Coder)
+			componentSets[kind] = NewComponentSet(cmpt.Slice)
 		}
 	}
 
@@ -82,13 +81,17 @@ func (m *Manager) setIDUsed(eid ID) {
 	}
 }
 
+func (m *Manager) Systems() []ISystem {
+	return m.systems
+}
+
 func (m *Manager) GetComponentSet(name string) (IComponentSet, error) {
 	cmptType, exists := m.cmptRegistry.GetComponentType(name)
 	if !exists {
 		return nil, errors.New("entity.Manager.GetComponentSet: unregistered component type '" + name + "'")
 	}
 
-	set, exists := m.componentSets[cmptType.Kind()]
+	set, exists := m.componentSets[cmptType.Kind]
 	if !exists {
 		return nil, errors.New("entity.Manager.GetComponentSet: unregistered component type '" + name + "'")
 	}
@@ -114,12 +117,12 @@ func (m *Manager) MakeCmptQuery(cmptTypes []string) (ComponentMask, error) {
 			return 0, errors.New("entity.Manager.MakeCmptQuery: component type '" + typeName + "' is not registered")
 		}
 
-		cmptQuery = cmptQuery.Add(t.Kind())
+		cmptQuery = cmptQuery.Add(t.Kind)
 	}
 	return cmptQuery, nil
 }
 
-func (m *Manager) EntityFromTemplate(name string) (Entity, error) {
+func (m *Manager) MakeEntityFromTemplate(name string) (Entity, error) {
 	ent, err := m.templateCache.Load(name)
 	if err != nil {
 		return Entity{}, err
@@ -131,7 +134,7 @@ func (m *Manager) EntityFromTemplate(name string) (Entity, error) {
 	return ent, nil
 }
 
-func (m *Manager) EntityFromConfig(config map[string]interface{}) (Entity, error) {
+func (m *Manager) MakeEntityFromConfig(config map[string]interface{}) (Entity, error) {
 	entity, err := m.entityFactory.EntityFromConfig(config)
 	if err != nil {
 		return Entity{}, err
@@ -145,20 +148,32 @@ func (m *Manager) EntityFromConfig(config map[string]interface{}) (Entity, error
 	return entity, nil
 }
 
-func (m *Manager) AddEntity(entity Entity) {
+func (m *Manager) AddEntity(entity Entity) error {
 	m.entities = append(m.entities, entityRecord{id: entity.ID, mask: entity.ComponentMask, componentKinds: entity.ComponentKinds})
+
+	for _, sys := range m.systems {
+		err := sys.ComponentsWillJoin(entity.ID, entity.Components)
+		if err != nil {
+			return err
+		}
+	}
 
 	for i, cmpt := range entity.Components {
 		kind := entity.ComponentKinds[i]
-		m.componentSets[kind].Add(entity.ID, cmpt)
+		err := m.componentSets[kind].Add(entity.ID, cmpt)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (m *Manager) RemoveEntity(eid ID) {
 	m.cullable = append(m.cullable, eid)
 }
 
-func (m *Manager) CullEntities() {
+func (m *Manager) CullEntities() error {
 	for _, eid := range m.cullable {
 		removedIdx := -1
 		for i := range m.entities {
@@ -170,12 +185,33 @@ func (m *Manager) CullEntities() {
 
 		if removedIdx >= 0 {
 			ent := m.entities[removedIdx]
-			for _, kind := range ent.componentKinds {
-				m.componentSets[kind].Remove(eid)
+			cmpts := make([]IComponent, len(ent.componentKinds))
+
+			for i, kind := range ent.componentKinds {
+				cmpt, err := m.componentSets[kind].Get(eid)
+				if err != nil {
+					return err
+				}
+
+				cmpts[i] = cmpt
+
+				err = m.componentSets[kind].Remove(eid)
+				if err != nil {
+					return err
+				}
+			}
+
+			for _, sys := range m.systems {
+				err := sys.ComponentsWillLeave(eid, cmpts)
+				if err != nil {
+					return err
+				}
 			}
 
 			m.entities = append(m.entities[:removedIdx], m.entities[removedIdx+1:]...)
 		}
 	}
 	m.cullable = []ID{}
+
+	return nil
 }

@@ -20,38 +20,28 @@ type (
 	}
 )
 
+// ensure that System conforms to entity.ISystem
+var _ entity.ISystem = &System{}
+
 func New(atlasCache *texture.AtlasCache) *System {
 	return &System{
 		atlasCache: atlasCache,
 	}
 }
 
-// func (s *System) GetAnimation(eid entity.ID) string {
-// 	if e, exists := s.entityMap[eid]; exists {
-// 		return e.animationCmpt.Animation
-// 	} else {
-// 		panic("entity does not exist")
-// 	}
-// }
-
-// func (s *System) SetAnimation(eid entity.ID, animation string, animationStart common.Time) {
-// 	if e, exists := s.entityMap[eid]; exists {
-// 		e.animationCmpt.Animation = animation
-// 		e.animationCmpt.IsAnimating = true
-
-// 	} else {
-// 		panic("entity does not exist")
-// 	}
-// }
-
-// func (s *System) StopAnimating(eid entity.ID) {
-// 	if e, exists := s.entityMap[eid]; exists {
-// 		e.animationCmpt.IsAnimating = false
-
-// 	} else {
-// 		panic("entity does not exist")
-// 	}
-// }
+func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
+	return map[string]entity.CmptTypeCfg{
+		"animation": {
+			Coder: common.NewCoder(common.CoderConfig{
+				ConfigType: Component{},
+				Tag:        "config",
+				Decode:     func(x interface{}) (interface{}, error) { return x.(Component), nil },
+				Encode:     func(x interface{}) (interface{}, error) { /* @@TODO */ panic("unimplemented") },
+			}),
+			Slice: ComponentSlice{},
+		},
+	}
+}
 
 func (s *System) Update(t common.Time) {
 	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
@@ -102,12 +92,6 @@ func (s *System) Update(t common.Time) {
 	}
 }
 
-func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
-	return map[string]entity.CmptTypeCfg{
-		"animation": {Component{}, ComponentSlice{}},
-	}
-}
-
 func (s *System) WillJoinManager(em *entity.Manager) {
 	s.entityManager = em
 
@@ -130,73 +114,12 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 	s.animationCmptSet = animationCmptSet
 }
 
-// func (s *System) EntityComponentsChanged(eid entity.ID, components []entity.IComponent) {
-// 	var animationCmpt *Component
-// 	var renderCmpt *rendersys.Component
+func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) error {
+	// no-op
+	return nil
+}
 
-// 	for _, cmpt := range components {
-// 		if ac, is := cmpt.(*Component); is {
-// 			animationCmpt = ac
-// 		} else if rc, is := cmpt.(*rendersys.Component); is {
-// 			renderCmpt = rc
-// 		}
-
-// 		if animationCmpt != nil && renderCmpt != nil {
-// 			break
-// 		}
-// 	}
-
-// 	if animationCmpt != nil && renderCmpt != nil {
-// 		if _, exists := s.entityMap[eid]; !exists {
-// 			s.entities = append(s.entities, entityAspect{
-// 				id:            eid,
-// 				animationCmpt: animationCmpt,
-// 				renderCmpt:    renderCmpt,
-// 			})
-
-// 			s.entityMap[eid] = &s.entities[len(s.entities)-1]
-// 		}
-
-// 	} else {
-// 		if _, exists := s.entityMap[eid]; exists {
-// 			idx := -1
-// 			for i := range s.entities {
-// 				if s.entities[i].id == eid {
-// 					idx = i
-// 					break
-// 				}
-// 			}
-
-// 			if idx >= 0 {
-// 				s.entities = append(s.entities[:idx], s.entities[idx+1:]...)
-// 			}
-
-// 			delete(s.entityMap, eid)
-// 		}
-// 	}
-// }
-
-// func (s *System) ComponentsWillLeave(eid entity.ID, components []entity.IComponent) {
-// 	remove := false
-// 	for _, cmpt := range components {
-// 		switch cmpt.(type) {
-// 		case *Component, *rendersys.Component:
-// 			remove = true
-// 			break
-// 		}
-// 	}
-
-// 	if remove {
-// 		removedIdx := -1
-// 		for i := range s.entities {
-// 			if s.entities[i].id == eid {
-// 				removedIdx = i
-// 				break
-// 			}
-// 		}
-// 		if removedIdx >= 0 {
-// 			s.entities = append(s.entities[:removedIdx], s.entities[removedIdx+1:]...)
-// 		}
-// 		delete(s.entityMap, eid)
-// 	}
-// }
+func (s *System) ComponentsWillLeave(eid entity.ID, cmpts []entity.IComponent) error {
+	// no-op
+	return nil
+}
