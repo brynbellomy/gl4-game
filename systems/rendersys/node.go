@@ -4,7 +4,6 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/brynbellomy/gl4-game/common"
-	// "github.com/brynbellomy/gl4-game/systems/rendersys/shader"
 )
 
 type (
@@ -17,6 +16,5 @@ type (
 		SetSize(s common.Size)
 		SetRotation(r float32)
 		SetTexture(tex uint32)
-		// SetShaderProgram(sp shader.Program)
 	}
 )

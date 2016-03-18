@@ -1,7 +1,6 @@
 package rendersys
 
 import (
-"fmt"
 	"errors"
 	_ "image/png"
 

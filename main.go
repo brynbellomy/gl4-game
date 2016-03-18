@@ -1,6 +1,8 @@
 package main
 
 import (
+    "flag"
+    "runtime/pprof"
 	"fmt"
 	_ "image/png"
 	"log"
@@ -21,12 +23,24 @@ import (
 const windowWidth = 1280
 const windowHeight = 960
 
+var cpuprofile = flag.String("cpuprof", "", "write cpu profile to file")
+
 func init() {
 	// GLFW event handling must run on the main OS thread
 	runtime.LockOSThread()
 }
 
 func main() {
+    flag.Parse()
+    if *cpuprofile != "" {
+        f, err := os.Create(*cpuprofile)
+        if err != nil {
+            log.Fatal(err)
+        }
+        pprof.StartCPUProfile(f)
+        defer pprof.StopCPUProfile()
+    }
+
 	assetPath, err := getAssetPath()
 	if err != nil {
 		panic(err)
