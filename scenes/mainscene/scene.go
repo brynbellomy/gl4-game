@@ -26,6 +26,7 @@ import (
 	"github.com/brynbellomy/gl4-game/systems/spritesys"
 	"github.com/brynbellomy/gl4-game/systems/tagsys"
 	"github.com/brynbellomy/gl4-game/systems/triggersys"
+    "github.com/brynbellomy/gl4-game/systems/scriptsys"
 )
 
 type (
@@ -47,6 +48,7 @@ type (
 		textureCache       *texture.TextureCache
 		textureAtlasCache  *texture.AtlasCache
 		shaderProgramCache *shader.ProgramCache
+        scriptCache *scriptsys.ScriptCache
 
 		tagSystem        *tagsys.System
 		positionSystem   *positionsys.System
@@ -58,6 +60,7 @@ type (
 		moveSystem       *movesys.System
 		projectileSystem *projectilesys.System
 		triggerSystem    *triggersys.System
+        scriptSystem *scriptsys.System
 	}
 )
 
@@ -84,11 +87,17 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		return nil, err
 	}
 
+    scriptSubdir, err := assetSystem.Filesystem().Subdir("scripts")
+    if err != nil {
+        return nil, err
+    }
+
 	var (
 		textureCache       = texture.NewTextureCache(textureSubdir)
 		textureAtlasCache  = texture.NewAtlasCache(textureCache, textureSubdir)
 		shaderCache        = shader.NewShaderCache(shaderSubdir)
 		shaderProgramCache = shader.NewProgramCache(shaderCache)
+        scriptCache        = scriptsys.NewScriptCache(scriptSubdir)
 	)
 
 	var (
@@ -102,6 +111,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		moveSystem       = movesys.New()
 		projectileSystem = projectilesys.New()
 		triggerSystem    = triggersys.New()
+        scriptSystem     = scriptsys.New(scriptCache)
 	)
 
 	var (
@@ -122,6 +132,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			moveSystem,
 			projectileSystem,
 			triggerSystem,
+            scriptSystem,
 		})
 
 		mainScene = &MainScene{
@@ -142,6 +153,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			moveSystem:       moveSystem,
 			projectileSystem: projectileSystem,
 			triggerSystem:    triggerSystem,
+            scriptSystem: scriptSystem,
 
 			inputSystem:  inputSystem,
 			inputHandler: inputHandler,
@@ -327,6 +339,7 @@ func (s *MainScene) Update() {
 
 	s.inputSystem.Update(t)
 
+    s.scriptSystem.Update(t)
 	s.triggerSystem.Update(t)
 	s.gameobjSystem.Update(t)
 	s.projectileSystem.Update(t)

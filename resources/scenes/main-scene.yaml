@@ -74,11 +74,11 @@ entities:
         -   type: move
             config:
                 vector: [0, 0]
-        -   type: trigger
-            config:
-                triggers:
-                -   condition: { type: touching, config: {} }
-                    effect:    { type: debug,    config: {} }
+        # -   type: trigger
+        #     config:
+        #         triggers:
+        #         -   condition: { type: touching, config: {} }
+        #             effect:    { type: debug,    config: {} }
 
 
     #
@@ -128,8 +128,13 @@ entities:
         -   type: move
             config:
                 vector: [0, 0]
-        -   type: trigger
+        # -   type: trigger
+        #     config:
+        #         triggers:
+        #         -   condition: { type: distance, config: { distance: 1, mode: 'greater than' } }
+        #             effect:    { type: debug,    config: {} }
+
+        -   type: script
             config:
-                triggers:
-                -   condition: { type: distance, config: { distance: 1, mode: 'greater than' } }
-                    effect:    { type: debug,    config: {} }
+                filename: test.js
+
