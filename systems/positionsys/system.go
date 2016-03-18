@@ -3,6 +3,7 @@ package positionsys
 import (
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
+    "github.com/brynbellomy/gl4-game/systems/triggersys"
 )
 
 type (
@@ -34,6 +35,22 @@ func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 			Slice: ComponentSlice{},
 		},
 	}
+}
+
+func (s *System) TriggerTypes() triggersys.TriggerTypes {
+    return triggersys.TriggerTypes{
+        Conditions: map[string]triggersys.ConditionTypeCfg{
+            "distance": {
+                Coder: common.NewCoder(common.CoderConfig{
+                    ConfigType: &DistanceCondition{},
+                    Tag:        "config",
+                    Decode:     func(x interface{}) (interface{}, error) { return x.(*DistanceCondition), nil },
+                    Encode:     func(x interface{}) (interface{}, error) { return x.(*DistanceCondition), nil },
+                }),
+            },
+        },
+        Effects: map[string]triggersys.EffectTypeCfg{},
+    }
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
