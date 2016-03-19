@@ -136,5 +136,5 @@ entities:
 
         -   type: script
             config:
-                filename: test.js
+                filename: test.lua
 

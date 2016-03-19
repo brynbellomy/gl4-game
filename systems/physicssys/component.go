@@ -100,3 +100,7 @@ func (cs ComponentSlice) Set(idx int, cmpt entity.IComponent) bool {
 	cs[idx] = cmpt.(Component)
 	return true
 }
+
+func (cs ComponentSlice) SetVelocity(idx int, vel mgl32.Vec2) {
+    cs[idx].Velocity = vel
+}

@@ -1,15 +1,14 @@
 package scriptsys
 
 import (
-    "github.com/robertkrimen/otto"
+    "github.com/yuin/gopher-lua"
 
     "github.com/brynbellomy/gl4-game/entity"
 )
 
 type (
     Component struct {
-        vm *otto.Otto
-        script *otto.Script
+        L *lua.LState
     }
 
     ComponentCfg struct {

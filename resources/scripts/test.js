@@ -1,16 +1,20 @@
 
 function update(time, scriptInterface) {
-    // console.log("time:", time)
-    // var asdf = JSON.stringify(entityManager.EntitiesMatching(1 | 2 | 4))
     var entityManager = scriptInterface.EntityManager()
+    var componentQuery = entityManager.MakeCmptQuery(['physics', 'position'])
+    var physicsCmptSet = entityManager.GetComponentSet('physics')
+    var positionCmptSet = entityManager.GetComponentSet('position')
 
-    var result = entityManager.MakeCmptQuery(['physics', 'position'])
-    var componentQuery = result[0]
-    var err = result[1]
-    if (err !== null && err !== undefined) {
-        throw new Error(err)
+    var matchIDs = entityManager.EntitiesMatching(componentQuery)
+    var physicsIdxs = physicsCmptSet.Indices(matchIDs)
+    var positionIdxs = positionCmptSet.Indices(matchIDs)
+
+    var physicsCmptSlice = physicsCmptSet.Slice()
+    var positionCmptSlice = positionCmptSet.Slice()
+
+    for (var i = 0; i < physicsIdxs.length; i++) {
+        console.log('velocity ~>', physicsCmptSlice[physicsIdxs[i]].Velocity)
+        console.log('position ~>', positionCmptSlice[positionIdxs[i]].Pos)
+        physicsCmptSlice.SetVelocity(physicsIdxs[i], [0.1, 0.1])
     }
-
-    // console.log('componentQuery = ', JSON.stringify(componentQuery))
-    // console.log("entityManager =", entityManager.EntitiesMatching(componentQuery))
 }
