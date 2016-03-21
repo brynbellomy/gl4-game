@@ -30,6 +30,10 @@ func New(scriptCache *ScriptCache) *System {
 	}
 }
 
+func (s *System) Name() string {
+	return "script"
+}
+
 func (s *System) Update(t common.Time) {
 	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
 	scriptCmptIdxs, err := s.scriptCmptSet.Indices(matchIDs)
@@ -60,11 +64,16 @@ func (s *System) Update(t common.Time) {
 			panic(err) // @@TODO
 		}
 
+		luaOwnID, err := luaconv.Wrap(scriptCmpt.L, reflect.ValueOf(matchIDs[i]))
+		if err != nil {
+			panic(err) // @@TODO
+		}
+
 		err = scriptCmpt.L.CallByParam(lua.P{
 			Fn:      scriptCmpt.L.GetGlobal("update"),
 			NRet:    0,
 			Protect: false,
-		}, luaT, luaScriptCtx)
+		}, luaT, luaScriptCtx, luaOwnID)
 
 		if err != nil {
 			panic(err) // @@TODO

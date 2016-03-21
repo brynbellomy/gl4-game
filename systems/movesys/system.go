@@ -25,6 +25,10 @@ func New() *System {
 	return &System{}
 }
 
+func (s *System) Name() string {
+	return "move"
+}
+
 func (s *System) Update(t common.Time) {
 	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
 

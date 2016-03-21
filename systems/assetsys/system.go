@@ -17,6 +17,10 @@ func New(fs IFilesystem) *System {
 	return &System{fs: fs}
 }
 
+func (s *System) Name() string {
+	return "asset"
+}
+
 func (s *System) Filesystem() IFilesystem {
 	return s.fs
 }

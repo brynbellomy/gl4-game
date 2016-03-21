@@ -24,6 +24,10 @@ type (
 	}
 )
 
+func (em *ScriptEntityManager) GetSystem(name string) entity.ISystem {
+	return em.entityManager.GetSystem(name)
+}
+
 func (em *ScriptEntityManager) MakeCmptQuery(cmptTypes []string) (entity.ComponentMask, error) {
 	return em.entityManager.MakeCmptQuery(cmptTypes)
 }
@@ -51,6 +55,15 @@ type (
 		L            *lua.LState
 	}
 )
+
+func (cs *ScriptComponentSet) Get(eid entity.ID) (entity.IComponent, error) {
+	return cs.componentSet.Get(eid)
+}
+
+func (cs *ScriptComponentSet) Index(eid entity.ID) (int, bool) {
+	i, exists := cs.componentSet.Index(eid)
+	return i + 1, exists
+}
 
 func (cs *ScriptComponentSet) Indices(entityIDs []entity.ID) ([]int, error) {
 	idxs, err := cs.componentSet.Indices(entityIDs)

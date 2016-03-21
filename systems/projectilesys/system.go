@@ -29,6 +29,10 @@ func New() *System {
 	return &System{}
 }
 
+func (s *System) Name() string {
+	return "projectile"
+}
+
 func (s *System) Update(t common.Time) {
 	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
 	positionCmptIdxs, err := s.positionCmptSet.Indices(matchIDs)

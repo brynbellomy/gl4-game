@@ -31,6 +31,10 @@ func New() *System {
 	}
 }
 
+func (s *System) Name() string {
+	return "steering"
+}
+
 func (s *System) AddBehavior(eid entity.ID, behavior IBehavior) {
 	if ent, exists := s.entityMap[eid]; exists {
 		ent.steeringCmpt.behaviors = append(ent.steeringCmpt.behaviors, behavior)

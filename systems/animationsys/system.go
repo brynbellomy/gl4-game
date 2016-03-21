@@ -29,6 +29,10 @@ func New(atlasCache *texture.AtlasCache) *System {
 	}
 }
 
+func (s *System) Name() string {
+	return "animation"
+}
+
 func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 	return map[string]entity.CmptTypeCfg{
 		"animation": {

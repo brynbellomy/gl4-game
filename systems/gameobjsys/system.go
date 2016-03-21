@@ -26,6 +26,10 @@ func New() *System {
 	return &System{}
 }
 
+func (s *System) Name() string {
+	return "gameobj"
+}
+
 func (s *System) Update(t common.Time) {
 	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
 	gameobjCmptIdxs, err := s.gameobjCmptSet.Indices(matchIDs)

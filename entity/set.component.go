@@ -23,6 +23,7 @@ type (
 		Remove(eid ID) error
 		Get(eid ID) (IComponent, error)
 		Set(eid ID, cmpt IComponent) error
+		Index(eid ID) (int, bool)
 		Indices(eids []ID) ([]int, error)
 		IDForIndex(i int) (ID, bool)
 		Slice() interface{}
@@ -101,10 +102,15 @@ func (cs *ComponentSet) Set(eid ID, cmpt IComponent) error {
 	return nil
 }
 
+func (cs *ComponentSet) Index(eid ID) (int, bool) {
+	i, exists := cs.idxMap[eid]
+	return i, exists
+}
+
 func (cs *ComponentSet) Indices(entityIDs []ID) ([]int, error) {
 	indices := make([]int, len(entityIDs))
 	for i, eid := range entityIDs {
-		idx, exists := cs.idxMap[eid]
+		idx, exists := cs.Index(eid)
 		if !exists {
 			return nil, fmt.Errorf("entity.ComponentSet.Indices: unknown entity ID '%v'", eid)
 		}

@@ -42,6 +42,10 @@ func New(shaderProgramCache *shader.ProgramCache) *System {
 	}
 }
 
+func (s *System) Name() string {
+	return "render"
+}
+
 func (s *System) SetProjection(p mgl32.Mat4) {
 	s.projection = p
 }
@@ -136,10 +140,10 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) error {
 	for i := range cmpts {
 		if cmpt, is := cmpts[i].(Component); is {
-            err := cmpt.renderNode.Init()
-            if err != nil {
-                return err
-            }
+			err := cmpt.renderNode.Init()
+			if err != nil {
+				return err
+			}
 
 			cmpts[i] = cmpt
 		}
@@ -151,10 +155,10 @@ func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) er
 func (s *System) ComponentsWillLeave(eid entity.ID, cmpts []entity.IComponent) error {
 	for i := range cmpts {
 		if cmpt, is := cmpts[i].(Component); is {
-            rn := cmpt.renderNode
+			rn := cmpt.renderNode
 			cmpt.renderNode = nil
 
-            err := rn.Destroy()
+			err := rn.Destroy()
 			if err != nil {
 				return err
 			}

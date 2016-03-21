@@ -38,6 +38,10 @@ func New(initialState IInputState, inputMapper IInputMapper, inputHandler IInput
 	}
 }
 
+func (s *System) Name() string {
+	return "input"
+}
+
 func (s *System) BecomeInputResponder(w *glfw.Window) {
 	s.inputQueue.BecomeInputResponder(w)
 }

@@ -28,6 +28,10 @@ func New(textureCache *texture.TextureCache) *System {
 	}
 }
 
+func (s *System) Name() string {
+	return "sprite"
+}
+
 func (s *System) Update(t common.Time) {
 	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
 	renderCmptIdxs, err := s.renderCmptSet.Indices(matchIDs)

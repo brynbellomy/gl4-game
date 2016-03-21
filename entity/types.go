@@ -6,6 +6,7 @@ import (
 
 type (
 	ISystem interface {
+		Name() string
 		WillJoinManager(em *Manager)
 		ComponentTypes() map[string]CmptTypeCfg
 		ComponentsWillJoin(eid ID, cmpts []IComponent) error

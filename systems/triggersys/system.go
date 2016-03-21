@@ -43,6 +43,10 @@ func New() *System {
 	}
 }
 
+func (s *System) Name() string {
+	return "trigger"
+}
+
 func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 	return map[string]entity.CmptTypeCfg{
 		"trigger": {

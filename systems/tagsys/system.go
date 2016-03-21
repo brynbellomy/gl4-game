@@ -26,6 +26,10 @@ func New() *System {
 	}
 }
 
+func (s *System) Name() string {
+	return "tag"
+}
+
 func (s *System) EntityWithTag(tag string) (entity.ID, bool) {
 	sl := s.tagCmptSet.Slice().(ComponentSlice)
 	for idx, x := range sl {

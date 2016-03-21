@@ -29,6 +29,10 @@ func New() *System {
 	return &System{}
 }
 
+func (s *System) Name() string {
+	return "physics"
+}
+
 func (s *System) OnCollision(fn func(c Collision)) {
 	s.onCollision = fn
 }

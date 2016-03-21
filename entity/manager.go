@@ -10,6 +10,7 @@ import (
 type (
 	Manager struct {
 		systems       []ISystem
+		systemMap     map[string]ISystem
 		entities      []entityRecord
 		componentSets map[ComponentKind]IComponentSet
 
@@ -36,7 +37,10 @@ func NewManager(fs assetsys.IFilesystem, systems []ISystem) *Manager {
 	templateCache := NewTemplateCache(fs, entityFactory)
 
 	componentSets := map[ComponentKind]IComponentSet{}
+	sysmap := map[string]ISystem{}
 	for _, sys := range systems {
+		sysmap[sys.Name()] = sys
+
 		for name, cmpt := range sys.ComponentTypes() {
 			kind := cmptRegistry.RegisterComponentType(name, cmpt.Coder)
 			componentSets[kind] = NewComponentSet(cmpt.Slice)
@@ -45,6 +49,7 @@ func NewManager(fs assetsys.IFilesystem, systems []ISystem) *Manager {
 
 	m := &Manager{
 		systems:       systems,
+		systemMap:     sysmap,
 		entities:      []entityRecord{},
 		cullable:      []ID{},
 		usedIDs:       map[ID]bool{},
@@ -83,6 +88,10 @@ func (m *Manager) setIDUsed(eid ID) {
 
 func (m *Manager) Systems() []ISystem {
 	return m.systems
+}
+
+func (m *Manager) GetSystem(name string) ISystem {
+	return m.systemMap[name]
 }
 
 func (m *Manager) GetComponentSet(name string) (IComponentSet, error) {

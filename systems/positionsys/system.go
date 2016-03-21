@@ -3,7 +3,7 @@ package positionsys
 import (
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
-    "github.com/brynbellomy/gl4-game/systems/triggersys"
+	"github.com/brynbellomy/gl4-game/systems/triggersys"
 )
 
 type (
@@ -17,6 +17,10 @@ var _ entity.ISystem = &System{}
 
 func New() *System {
 	return &System{}
+}
+
+func (s *System) Name() string {
+	return "position"
 }
 
 func (s *System) Update(t common.Time) {
@@ -38,19 +42,19 @@ func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 }
 
 func (s *System) TriggerTypes() triggersys.TriggerTypes {
-    return triggersys.TriggerTypes{
-        Conditions: map[string]triggersys.ConditionTypeCfg{
-            "distance": {
-                Coder: common.NewCoder(common.CoderConfig{
-                    ConfigType: &DistanceCondition{},
-                    Tag:        "config",
-                    Decode:     func(x interface{}) (interface{}, error) { return x.(*DistanceCondition), nil },
-                    Encode:     func(x interface{}) (interface{}, error) { return x.(*DistanceCondition), nil },
-                }),
-            },
-        },
-        Effects: map[string]triggersys.EffectTypeCfg{},
-    }
+	return triggersys.TriggerTypes{
+		Conditions: map[string]triggersys.ConditionTypeCfg{
+			"distance": {
+				Coder: common.NewCoder(common.CoderConfig{
+					ConfigType: &DistanceCondition{},
+					Tag:        "config",
+					Decode:     func(x interface{}) (interface{}, error) { return x.(*DistanceCondition), nil },
+					Encode:     func(x interface{}) (interface{}, error) { return x.(*DistanceCondition), nil },
+				}),
+			},
+		},
+		Effects: map[string]triggersys.EffectTypeCfg{},
+	}
 }
 
 func (s *System) WillJoinManager(em *entity.Manager) {
