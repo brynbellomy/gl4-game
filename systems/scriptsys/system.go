@@ -1,7 +1,10 @@
 package scriptsys
 
 import (
-	"github.com/layeh/gopher-luar"
+	// "github.com/layeh/gopher-luar"
+	"reflect"
+
+	"github.com/brynbellomy/go-luaconv"
 	"github.com/yuin/gopher-lua"
 
 	"github.com/brynbellomy/gl4-game/common"
@@ -31,7 +34,7 @@ func (s *System) Update(t common.Time) {
 	matchIDs := s.entityManager.EntitiesMatching(s.componentQuery)
 	scriptCmptIdxs, err := s.scriptCmptSet.Indices(matchIDs)
 	if err != nil {
-		panic(err)
+		panic(err) // @@TODO
 	}
 
 	scriptCmptSlice := s.scriptCmptSet.Slice().(ComponentSlice)
@@ -47,15 +50,24 @@ func (s *System) Update(t common.Time) {
 			},
 		}
 
-		err := scriptCmpt.L.CallByParam(lua.P{
+		luaT, err := luaconv.Wrap(scriptCmpt.L, reflect.ValueOf(t))
+		if err != nil {
+			panic(err) // @@TODO
+		}
+
+		luaScriptCtx, err := luaconv.Wrap(scriptCmpt.L, reflect.ValueOf(scriptInterface))
+		if err != nil {
+			panic(err) // @@TODO
+		}
+
+		err = scriptCmpt.L.CallByParam(lua.P{
 			Fn:      scriptCmpt.L.GetGlobal("update"),
 			NRet:    0,
-			Protect: true,
-		}, luar.New(scriptCmpt.L, t), luar.New(scriptCmpt.L, scriptInterface))
+			Protect: false,
+		}, luaT, luaScriptCtx)
 
 		if err != nil {
-			// @@TODO
-			panic(err)
+			panic(err) // @@TODO
 		}
 	}
 }

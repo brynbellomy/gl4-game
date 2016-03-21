@@ -1,9 +1,6 @@
 package scriptsys
 
 import (
-	"reflect"
-
-	"github.com/brynbellomy/go-luaconv"
 	"github.com/yuin/gopher-lua"
 
 	"github.com/brynbellomy/gl4-game/entity"
@@ -27,30 +24,12 @@ type (
 	}
 )
 
-func (em *ScriptEntityManager) MakeCmptQuery(cmptTypes *lua.LTable) lua.LNumber {
-	cmptTypeStrs, err := luaconv.LuaToNativeValue(em.L, cmptTypes, reflect.TypeOf([]string{}), "")
-	if err != nil {
-		// @@TODO
-		panic(err)
-	}
-
-	x, err := em.entityManager.MakeCmptQuery(cmptTypeStrs.Interface().([]string))
-	if err != nil {
-		// @@TODO?
-		panic(err)
-	}
-	return lua.LNumber(x)
+func (em *ScriptEntityManager) MakeCmptQuery(cmptTypes []string) (entity.ComponentMask, error) {
+	return em.entityManager.MakeCmptQuery(cmptTypes)
 }
 
-func (em *ScriptEntityManager) EntitiesMatching(cmptMask lua.LNumber) *lua.LTable {
-	matchIDs := em.entityManager.EntitiesMatching(entity.ComponentMask(int(cmptMask)))
-	luaVal, err := luaconv.NativeValueToLua(em.L, reflect.ValueOf(matchIDs), "")
-	if err != nil {
-		// @@TODO?
-		panic(err)
-	}
-
-	return luaVal.(*lua.LTable)
+func (em *ScriptEntityManager) EntitiesMatching(cmptMask entity.ComponentMask) []entity.ID {
+	return em.entityManager.EntitiesMatching(entity.ComponentMask(int(cmptMask)))
 }
 
 func (em *ScriptEntityManager) GetComponentSet(name string) *ScriptComponentSet {
@@ -73,26 +52,18 @@ type (
 	}
 )
 
-func (cs *ScriptComponentSet) Indices(entityIDs *lua.LTable) *lua.LTable {
-	eids, err := luaconv.LuaToNativeValue(cs.L, entityIDs, reflect.TypeOf([]entity.ID{}), "")
+func (cs *ScriptComponentSet) Indices(entityIDs []entity.ID) ([]int, error) {
+	idxs, err := cs.componentSet.Indices(entityIDs)
 	if err != nil {
-		// @@TODO?
-		panic(err)
+		return nil, err
 	}
 
-	idxs, err := cs.componentSet.Indices(eids.Interface().([]entity.ID))
-	if err != nil {
-		// @@TODO?
-		panic(err)
+	// add 1 to all indices to match Lua's 1-indexed scheme
+	for i := range idxs {
+		idxs[i]++
 	}
 
-	luaIdxs, err := luaconv.NativeValueToLua(cs.L, reflect.ValueOf(idxs), "")
-	if err != nil {
-		// @@TODO?
-		panic(err)
-	}
-
-	return luaIdxs.(*lua.LTable)
+	return idxs, nil
 }
 
 func (cs *ScriptComponentSet) Slice() interface{} {
