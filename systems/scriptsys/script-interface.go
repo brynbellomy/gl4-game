@@ -62,6 +62,7 @@ func (cs *ScriptComponentSet) Get(eid entity.ID) (entity.IComponent, error) {
 
 func (cs *ScriptComponentSet) Index(eid entity.ID) (int, bool) {
 	i, exists := cs.componentSet.Index(eid)
+	// add 1 to index to match Lua's 1-indexed scheme
 	return i + 1, exists
 }
 
