@@ -8,7 +8,9 @@ import (
 
 type (
 	Component struct {
-		Vec mgl32.Vec2 `config:"vector"`
+		Vec          mgl32.Vec2               `config:"vector"`
+		Speeds       map[MovementType]float32 `config:"speeds"`
+		MovementType MovementType             `config:"movementType"`
 	}
 
 	ComponentSlice []Component
@@ -28,6 +30,14 @@ func (c *Component) SetVector(vec mgl32.Vec2) {
 
 func (c *Component) ResetVector() {
 	c.Vec = mgl32.Vec2{0, 0}
+}
+
+func (c *Component) GetMovementType() MovementType {
+	return c.MovementType
+}
+
+func (c *Component) SetMovementType(mt MovementType) {
+	c.MovementType = mt
 }
 
 func (c Component) Clone() entity.IComponent {

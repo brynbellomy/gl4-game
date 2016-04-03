@@ -11,6 +11,7 @@ components:
     config:
         velocity: [0, 0]
         maxVelocity: 8
+        mass: 200
         totalCurrentForce: [0, 0]
         boundingBox: [[-0.1, -0.07], [-0.1, 0.07], [0.1, 0.07], [0.1, -0.07]]
         collisionMask: 4
@@ -32,9 +33,10 @@ components:
     config:
         heading: [0, 0]
         exitVelocity: 0.01
-        thrust: 10
+        thrust: 20
         state: 0
         removeOnContact: true
--   type: move
-    config:
-        vector: [0, 0]
+# -   type: move
+#     config:
+#         vector: [0, 0]
+#         speed:

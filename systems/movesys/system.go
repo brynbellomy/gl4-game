@@ -1,7 +1,7 @@
 package movesys
 
 import (
-	// "github.com/go-gl/mathgl/mgl32"
+	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/brynbellomy/gl4-game/common"
 	"github.com/brynbellomy/gl4-game/entity"
@@ -45,7 +45,14 @@ func (s *System) Update(t common.Time) {
 	physicsCmptSlice := s.physicsCmptSet.Slice().(physicssys.ComponentSlice)
 
 	for i := 0; i < len(moveCmptIdxs); i++ {
-		vec := moveCmptSlice[moveCmptIdxs[i]].Vector()
+		moveCmpt := moveCmptSlice[moveCmptIdxs[i]]
+		heading := moveCmpt.Vector()
+		speed := moveCmpt.Speeds[moveCmpt.MovementType]
+
+		var vec mgl32.Vec2
+		if (heading != mgl32.Vec2{0, 0}) {
+			vec = heading.Normalize().Mul(speed)
+		}
 		physicsCmptSlice[physCmptIdxs[i]].SetInstantaneousVelocity(vec)
 	}
 }

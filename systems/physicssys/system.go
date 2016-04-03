@@ -73,7 +73,10 @@ func (s *System) Update(t common.Time) {
 		newvel := physCmpt.GetVelocity().Add(vdelta)
 
 		// friction
-		// newvel = newvel.Mul(0.95)
+		newvel = newvel.Mul(0.95)
+
+		// // add the instantaneous velocity for the movement system
+		// newvel = newvel.Add(physCmpt.GetInstantaneousVelocity())
 
 		mag := newvel.Len()
 		maxvel := physCmpt.GetMaxVelocity()
@@ -109,10 +112,21 @@ func (s *System) Update(t common.Time) {
 
 			did := s.checkCollision(physCmptA, physCmptB, posCmptA, posCmptB)
 			if did {
+				// add a Collision object to the two components so that other code can be aware of this event
 				c := Collision{matchIDs[i], matchIDs[j]}
 				physCmptA.AddCollision(c)
 				physCmptB.AddCollision(c)
 				s.onCollision(c)
+
+				// determine the new velocities of the two objects post-collision
+				massCombined := physCmptA.Mass + physCmptB.Mass
+				massDifference := physCmptA.Mass - physCmptB.Mass
+				newVelX1 := (physCmptA.Velocity.X()*massDifference + (2 * physCmptB.Mass * physCmptB.Velocity.X())) / massCombined
+				newVelY1 := (physCmptA.Velocity.Y()*massDifference + (2 * physCmptB.Mass * physCmptB.Velocity.Y())) / massCombined
+				newVelX2 := (physCmptB.Velocity.X()*-massDifference + (2 * physCmptA.Mass * physCmptA.Velocity.X())) / massCombined
+				newVelY2 := (physCmptB.Velocity.Y()*-massDifference + (2 * physCmptA.Mass * physCmptA.Velocity.Y())) / massCombined
+				physCmptA.SetVelocity(mgl32.Vec2{newVelX1, newVelY1})
+				physCmptB.SetVelocity(mgl32.Vec2{newVelX2, newVelY2})
 			}
 
 			physCmptSlice[physCmptIdxs[j]] = physCmptB

@@ -110,6 +110,35 @@ func (s *System) initScriptComponent(cfg ComponentCfg) (Component, error) {
 		return Component{}, err
 	}
 
+	scriptInterface := &ScriptInterface{
+		L: L,
+		em: &ScriptEntityManager{
+			L:             L,
+			entityManager: s.entityManager,
+		},
+	}
+
+	luaScriptCtx, err := luaconv.Wrap(L, reflect.ValueOf(scriptInterface))
+	if err != nil {
+		return Component{}, err
+	}
+
+	// luaOwnID, err := luaconv.Wrap(L, reflect.ValueOf(matchIDs[i]))
+	// if err != nil {
+	//     return Component{}, err
+	// }
+
+	luaConfig, err := luaconv.Wrap(L, reflect.ValueOf(cfg.Params))
+	if err != nil {
+		return Component{}, err
+	}
+
+	err = L.CallByParam(lua.P{
+		Fn:      L.GetGlobal("init"),
+		NRet:    0,
+		Protect: false,
+	}, luaScriptCtx, luaConfig)
+
 	return Component{
 		L: L,
 	}, nil

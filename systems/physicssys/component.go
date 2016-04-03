@@ -12,6 +12,7 @@ type (
 		MaxVelocity           float32    `config:"maxVelocity"`
 		TotalCurrentForce     mgl32.Vec2 `config:"totalCurrentForce"`
 		InstantaneousVelocity mgl32.Vec2 `config:"instantaneousVelocity"`
+		Mass                  float32    `config:"mass"`
 
 		BoundingBox   BoundingBox `config:"boundingBox"`
 		Collisions    []Collision `config:"collisions"`
@@ -58,6 +59,10 @@ func (c *Component) ResetForces() {
 	c.TotalCurrentForce = mgl32.Vec2{}
 }
 
+func (c *Component) GetMass() float32 {
+	return c.Mass
+}
+
 func (c *Component) GetCollisions() []Collision {
 	return c.Collisions
 }
@@ -102,5 +107,5 @@ func (cs ComponentSlice) Set(idx int, cmpt entity.IComponent) bool {
 }
 
 func (cs ComponentSlice) SetVelocity(idx int, vel mgl32.Vec2) {
-    cs[idx].Velocity = vel
+	cs[idx].Velocity = vel
 }

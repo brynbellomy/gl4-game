@@ -2,7 +2,6 @@ package mainscene
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
@@ -23,10 +22,10 @@ import (
 	"github.com/brynbellomy/gl4-game/systems/rendersys"
 	"github.com/brynbellomy/gl4-game/systems/rendersys/shader"
 	"github.com/brynbellomy/gl4-game/systems/rendersys/texture"
+	"github.com/brynbellomy/gl4-game/systems/scriptsys"
 	"github.com/brynbellomy/gl4-game/systems/spritesys"
 	"github.com/brynbellomy/gl4-game/systems/tagsys"
 	"github.com/brynbellomy/gl4-game/systems/triggersys"
-    "github.com/brynbellomy/gl4-game/systems/scriptsys"
 )
 
 type (
@@ -48,7 +47,7 @@ type (
 		textureCache       *texture.TextureCache
 		textureAtlasCache  *texture.AtlasCache
 		shaderProgramCache *shader.ProgramCache
-        scriptCache *scriptsys.ScriptCache
+		scriptCache        *scriptsys.ScriptCache
 
 		tagSystem        *tagsys.System
 		positionSystem   *positionsys.System
@@ -60,7 +59,7 @@ type (
 		moveSystem       *movesys.System
 		projectileSystem *projectilesys.System
 		triggerSystem    *triggersys.System
-        scriptSystem *scriptsys.System
+		scriptSystem     *scriptsys.System
 	}
 )
 
@@ -87,17 +86,17 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		return nil, err
 	}
 
-    scriptSubdir, err := assetSystem.Filesystem().Subdir("scripts")
-    if err != nil {
-        return nil, err
-    }
+	scriptSubdir, err := assetSystem.Filesystem().Subdir("scripts")
+	if err != nil {
+		return nil, err
+	}
 
 	var (
 		textureCache       = texture.NewTextureCache(textureSubdir)
 		textureAtlasCache  = texture.NewAtlasCache(textureCache, textureSubdir)
 		shaderCache        = shader.NewShaderCache(shaderSubdir)
 		shaderProgramCache = shader.NewProgramCache(shaderCache)
-        scriptCache        = scriptsys.NewScriptCache(scriptSubdir)
+		scriptCache        = scriptsys.NewScriptCache(scriptSubdir)
 	)
 
 	var (
@@ -111,7 +110,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		moveSystem       = movesys.New()
 		projectileSystem = projectilesys.New()
 		triggerSystem    = triggersys.New()
-        scriptSystem     = scriptsys.New(scriptCache)
+		scriptSystem     = scriptsys.New(scriptCache)
 	)
 
 	var (
@@ -132,7 +131,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			moveSystem,
 			projectileSystem,
 			triggerSystem,
-            scriptSystem,
+			scriptSystem,
 		})
 
 		mainScene = &MainScene{
@@ -153,7 +152,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			moveSystem:       moveSystem,
 			projectileSystem: projectileSystem,
 			triggerSystem:    triggerSystem,
-            scriptSystem: scriptSystem,
+			scriptSystem:     scriptSystem,
 
 			inputSystem:  inputSystem,
 			inputHandler: inputHandler,
@@ -193,7 +192,7 @@ func (s *MainScene) Prepare() error {
 	s.inputHandler.onFireWeapon = s.onFireWeapon
 
 	s.physicsSystem.OnCollision(func(c physicssys.Collision) {
-		fmt.Printf("collision ~> %+v\n", c)
+		// fmt.Printf("collision ~> %+v\n", c)
 	})
 
 	return nil
@@ -287,7 +286,11 @@ func (s *MainScene) getCameraPos() mgl32.Vec2 {
 
 func (s *MainScene) getCamera() mgl32.Mat4 {
 	pos := s.getCameraPos()
-	return mgl32.LookAtV(mgl32.Vec3{pos.X(), pos.Y(), 3}, mgl32.Vec3{pos.X(), pos.Y(), 0}, mgl32.Vec3{0, -1, 0})
+	return mgl32.LookAtV(
+		mgl32.Vec3{pos.X(), pos.Y(), 4},
+		mgl32.Vec3{pos.X(), pos.Y(), 0},
+		mgl32.Vec3{0, -1, 0},
+	)
 }
 
 func (s *MainScene) onFireWeapon(controlledEntity entity.ID, x ActionFireWeapon) {
@@ -339,7 +342,7 @@ func (s *MainScene) Update() {
 
 	s.inputSystem.Update(t)
 
-    s.scriptSystem.Update(t)
+	s.scriptSystem.Update(t)
 	s.triggerSystem.Update(t)
 	s.gameobjSystem.Update(t)
 	s.projectileSystem.Update(t)

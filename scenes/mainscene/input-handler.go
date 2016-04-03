@@ -36,43 +36,56 @@ func (h *InputHandler) SetControlledEntity(eid entity.ID) {
 func (h *InputHandler) HandleInputState(t common.Time, st inputsys.IInputState) {
 	state := st.(inputState)
 
-	var accelAmt float32 = 1
-	if state.states[StateSprint] {
-		accelAmt *= 2
+	if h.controlledEntity == entity.InvalidID {
+		return
 	}
 
-	var totalAccel mgl32.Vec2
+	moveCmptSet, err := h.entityManager.GetComponentSet("move")
+	if err != nil {
+		panic(err)
+	}
+
+	e, err := moveCmptSet.Get(h.controlledEntity)
+	if err != nil {
+		panic(err)
+	}
+
+	moveCmpt := e.(movesys.Component)
+
+	var heading mgl32.Vec2
+	var isMoving bool
 	if state.states[StateUp] {
-		totalAccel = totalAccel.Add(mgl32.Vec2{0.0, -accelAmt})
+		heading = heading.Add(mgl32.Vec2{0.0, -1.0})
+		isMoving = true
 	}
 
 	if state.states[StateDown] {
-		totalAccel = totalAccel.Add(mgl32.Vec2{0.0, accelAmt})
+		heading = heading.Add(mgl32.Vec2{0.0, 1.0})
+		isMoving = true
 	}
 
 	if state.states[StateLeft] {
-		totalAccel = totalAccel.Add(mgl32.Vec2{accelAmt, 0.0})
+		heading = heading.Add(mgl32.Vec2{1.0, 0.0})
+		isMoving = true
 	}
 
 	if state.states[StateRight] {
-		totalAccel = totalAccel.Add(mgl32.Vec2{-accelAmt, 0.0})
+		heading = heading.Add(mgl32.Vec2{-1.0, 0.0})
+		isMoving = true
 	}
 
-	if h.controlledEntity != entity.InvalidID {
-		moveCmptSet, err := h.entityManager.GetComponentSet("move")
-		if err != nil {
-			panic(err)
+	if isMoving {
+		if state.states[StateSprint] {
+			moveCmpt.SetMovementType(movesys.MvmtSprinting)
+		} else {
+			moveCmpt.SetMovementType(movesys.MvmtWalking)
 		}
-
-		e, err := moveCmptSet.Get(h.controlledEntity)
-		if err != nil {
-			panic(err)
-		}
-
-		ent := e.(movesys.Component)
-		ent.SetVector(totalAccel)
-		moveCmptSet.Set(h.controlledEntity, ent)
+	} else {
+		moveCmpt.SetMovementType(movesys.MvmtNone)
 	}
+
+	moveCmpt.SetVector(heading)
+	moveCmptSet.Set(h.controlledEntity, moveCmpt)
 
 	for _, x := range state.actions {
 		switch x := x.(type) {
