@@ -25,6 +25,7 @@ import (
 	"github.com/brynbellomy/gl4-game/systems/scriptsys"
 	"github.com/brynbellomy/gl4-game/systems/spritesys"
 	"github.com/brynbellomy/gl4-game/systems/tagsys"
+	"github.com/brynbellomy/gl4-game/systems/tilemapsys"
 	"github.com/brynbellomy/gl4-game/systems/triggersys"
 )
 
@@ -60,6 +61,7 @@ type (
 		projectileSystem *projectilesys.System
 		triggerSystem    *triggersys.System
 		scriptSystem     *scriptsys.System
+		tilemapSystem    *tilemapsys.System
 	}
 )
 
@@ -91,12 +93,18 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		return nil, err
 	}
 
+	tilemapSubdir, err := assetSystem.Filesystem().Subdir("tilemaps")
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		textureCache       = texture.NewTextureCache(textureSubdir)
 		textureAtlasCache  = texture.NewAtlasCache(textureCache, textureSubdir)
 		shaderCache        = shader.NewShaderCache(shaderSubdir)
 		shaderProgramCache = shader.NewProgramCache(shaderCache)
 		scriptCache        = scriptsys.NewScriptCache(scriptSubdir)
+		tilemapCache       = tilemapsys.NewTilemapCache(tilemapSubdir)
 	)
 
 	var (
@@ -111,6 +119,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		projectileSystem = projectilesys.New()
 		triggerSystem    = triggersys.New()
 		scriptSystem     = scriptsys.New(scriptCache)
+		tilemapSystem    = tilemapsys.New(tilemapCache)
 	)
 
 	var (
@@ -124,6 +133,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			tagSystem,
 			positionSystem,
 			physicsSystem,
+			tilemapSystem,
 			renderSystem,
 			spriteSystem,
 			animationSystem,
@@ -153,6 +163,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 			projectileSystem: projectileSystem,
 			triggerSystem:    triggerSystem,
 			scriptSystem:     scriptSystem,
+			tilemapSystem:    tilemapSystem,
 
 			inputSystem:  inputSystem,
 			inputHandler: inputHandler,
@@ -351,6 +362,7 @@ func (s *MainScene) Update() {
 	s.positionSystem.Update(t)
 	s.spriteSystem.Update(t)
 	s.animationSystem.Update(t)
+	s.tilemapSystem.Update(t)
 
 	s.renderSystem.SetCamera(s.getCamera())
 	s.renderSystem.Update(t)

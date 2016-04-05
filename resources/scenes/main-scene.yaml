@@ -2,7 +2,7 @@
 entities:
 
     #
-    # background
+    # tilemap
     #
 
     -   id: 0
@@ -10,7 +10,7 @@ entities:
         -   type: position
             config:
                 pos: [0, 0]
-                size: [2, 2]
+                size: [4, 4]
                 rotation: 0
                 z-index: 0
         -   type: render
@@ -19,9 +19,33 @@ entities:
                 nodeConfig:
                     vertex-shader:   default-sprite.vertex.glsl
                     fragment-shader: default-sprite.fragment.glsl
+        -   type: tilemap
+            config:
+                tilemap: islands/monkey.tmx
+
         -   type: sprite
             config:
-                texture: square.png
+                texture: cave-large.png
+
+
+
+    # -   id: 0
+    #     components:
+    #     -   type: position
+    #         config:
+    #             pos: [0, 0]
+    #             size: [2, 2]
+    #             rotation: 0
+    #             z-index: 0
+    #     -   type: render
+    #         config:
+    #             nodeType: sprite
+    #             nodeConfig:
+    #                 vertex-shader:   default-sprite.vertex.glsl
+    #                 fragment-shader: default-sprite.fragment.glsl
+    #     -   type: sprite
+    #         config:
+    #             texture: square.png
 
 
     #

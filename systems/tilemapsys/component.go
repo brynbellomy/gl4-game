@@ -1,35 +1,22 @@
-package rendersys
+package tilemapsys
 
 import (
+	"github.com/azul3d-legacy/tmx"
+
 	"github.com/brynbellomy/gl4-game/entity"
-	"github.com/brynbellomy/gl4-game/systems/rendersys/texture"
 )
 
 type (
 	Component struct {
-		renderNode INode
-		texture    texture.TextureID
+		Tilemap *tmx.Map
 	}
 
 	ComponentCfg struct {
-		NodeType   string                 `config:"nodeType"`
-		NodeConfig map[string]interface{} `config:"nodeConfig"`
+		Tilemap string `config:"tilemap"`
 	}
 
 	ComponentSlice []Component
 )
-
-func (c *Component) Texture() texture.TextureID {
-	return c.texture
-}
-
-func (c *Component) SetTexture(tex texture.TextureID) {
-	c.texture = tex
-}
-
-func (c *Component) RenderNode() INode {
-	return c.renderNode
-}
 
 func (c Component) Clone() entity.IComponent {
 	return c

@@ -13,7 +13,7 @@ import (
 
 type Atlas struct {
 	name       string
-	animations map[string][]uint32
+	animations map[string][]TextureID
 }
 
 func NewAtlasFromFile(filename string, fs assetsys.IFilesystem, textureCache *TextureCache) (*Atlas, error) {
@@ -50,10 +50,10 @@ func NewAtlasFromConfig(cache *TextureCache, assetRoot string, config map[string
 	}
 	cfg := c.(*atlasConfig)
 
-	animations := make(map[string][]uint32)
+	animations := make(map[string][]TextureID)
 
 	for animName, frames := range cfg.Animations {
-		texs := make([]uint32, len(frames))
+		texs := make([]TextureID, len(frames))
 
 		for i, filename := range frames {
 			tex, err := cache.Load(path.Join(assetRoot, filename))
@@ -75,6 +75,6 @@ func (a *Atlas) Name() string {
 	return a.name
 }
 
-func (a *Atlas) Animation(name string) []uint32 {
+func (a *Atlas) Animation(name string) []TextureID {
 	return a.animations[name]
 }

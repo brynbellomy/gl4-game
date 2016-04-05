@@ -2,40 +2,27 @@ package spritesys
 
 import (
 	"github.com/brynbellomy/gl4-game/entity"
+	"github.com/brynbellomy/gl4-game/systems/rendersys/texture"
 )
 
 type (
 	Component struct {
-		TextureName     string `config:"texture"`
-		IsTextureLoaded bool   `config:"-"`
-		Texture         uint32 `config:"-"`
+		Texture texture.TextureID
+	}
+
+	ComponentCfg struct {
+		TextureName string `config:"texture"`
 	}
 
 	ComponentSlice []Component
 )
 
-func NewComponent(textureName string) *Component {
-	return &Component{
-		TextureName:     textureName,
-		IsTextureLoaded: false,
-		Texture:         0,
-	}
-}
-
-func (c *Component) GetTexture() uint32 {
+func (c *Component) GetTexture() texture.TextureID {
 	return c.Texture
 }
 
-func (c *Component) SetTexture(tex uint32) {
+func (c *Component) SetTexture(tex texture.TextureID) {
 	c.Texture = tex
-}
-
-func (c *Component) GetTextureName() string {
-	return c.TextureName
-}
-
-func (c *Component) SetTextureName(tex string) {
-	c.TextureName = tex
 }
 
 func (c Component) Clone() entity.IComponent {

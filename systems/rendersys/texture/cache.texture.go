@@ -12,21 +12,25 @@ import (
 	"github.com/brynbellomy/gl4-game/systems/assetsys"
 )
 
-type TextureCache struct {
-	mutex    sync.RWMutex
-	textures map[string]uint32
-	fs       assetsys.IFilesystem
-}
+type (
+	TextureCache struct {
+		mutex    sync.RWMutex
+		textures map[string]TextureID
+		fs       assetsys.IFilesystem
+	}
+
+	TextureID uint32
+)
 
 func NewTextureCache(fs assetsys.IFilesystem) *TextureCache {
 	return &TextureCache{
 		mutex:    sync.RWMutex{},
-		textures: map[string]uint32{},
+		textures: map[string]TextureID{},
 		fs:       fs,
 	}
 }
 
-func (c *TextureCache) Load(filename string) (uint32, error) {
+func (c *TextureCache) Load(filename string) (TextureID, error) {
 	fmt.Println("texture cache: loading", filename)
 
 	c.mutex.RLock()
@@ -50,7 +54,7 @@ func (c *TextureCache) Load(filename string) (uint32, error) {
 	return t, nil
 }
 
-func (c *TextureCache) loadTexture(file string) (uint32, error) {
+func (c *TextureCache) loadTexture(file string) (TextureID, error) {
 	imgFile, err := c.fs.OpenFile(file, 0, 0400)
 	if err != nil {
 		return 0, err
@@ -88,5 +92,5 @@ func (c *TextureCache) loadTexture(file string) (uint32, error) {
 		gl.Ptr(rgba.Pix),
 	)
 
-	return texture, nil
+	return TextureID(texture), nil
 }

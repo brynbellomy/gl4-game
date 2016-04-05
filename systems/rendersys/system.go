@@ -30,11 +30,14 @@ type (
 		renderCmpt   Component
 		positionCmpt positionsys.Component
 	}
+
+	INodeProviderSystem interface {
+		RenderNodeFactories() map[string]INodeFactory
+	}
 )
 
 func New(shaderProgramCache *shader.ProgramCache) *System {
 	nodeFactory := NewNodeFactory()
-	nodeFactory.RegisterNodeType("sprite", &SpriteNodeFactory{shaderProgramCache})
 
 	return &System{
 		shaderProgramCache: shaderProgramCache,
@@ -115,6 +118,12 @@ func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 	}
 }
 
+func (s *System) RenderNodeFactories() map[string]INodeFactory {
+	return map[string]INodeFactory{
+		"sprite": &SpriteNodeFactory{s.shaderProgramCache},
+	}
+}
+
 func (s *System) WillJoinManager(em *entity.Manager) {
 	s.entityManager = em
 
@@ -135,6 +144,14 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 		panic(err)
 	}
 	s.positionCmptSet = positionCmptSet
+
+	for _, sys := range em.Systems() {
+		if sys, is := sys.(INodeProviderSystem); is {
+			for name, fac := range sys.RenderNodeFactories() {
+				s.nodeFactory.RegisterNodeType(name, fac)
+			}
+		}
+	}
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) error {

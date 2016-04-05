@@ -77,7 +77,7 @@ func (s *System) Update(t common.Time) {
 
 		if !animationCmpt.IsAnimating {
 			animationCmpt.CurrentIndex = 0
-			renderCmpt.SetTexture(textures[animationCmpt.CurrentIndex])
+			// renderCmpt.SetTexture(textures[animationCmpt.CurrentIndex])
 
 		} else {
 			elapsedNano := t - animationCmpt.AnimationStart
@@ -119,7 +119,41 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) error {
-	// no-op
+	var animationCmptIdx = -1
+	var renderCmptIdx = -1
+
+	for i := range cmpts {
+		if _, is := cmpts[i].(Component); is {
+			animationCmptIdx = i
+		} else if _, is := cmpts[i].(rendersys.Component); is {
+			renderCmptIdx = i
+		}
+
+		if animationCmptIdx != -1 && renderCmptIdx != -1 {
+			break
+		}
+	}
+
+	if animationCmptIdx != -1 && renderCmptIdx != -1 {
+		animationCmpt := cmpts[animationCmptIdx].(Component)
+		renderCmpt := cmpts[renderCmptIdx].(rendersys.Component)
+
+		atlas, err := s.atlasCache.Load(animationCmpt.AtlasName)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		textures := atlas.Animation(animationCmpt.Animation)
+		if len(textures) <= 0 {
+			panic("textures slice is empty")
+		}
+
+		renderCmpt.SetTexture(textures[animationCmpt.CurrentIndex])
+
+		cmpts[animationCmptIdx] = animationCmpt
+		cmpts[renderCmptIdx] = renderCmpt
+	}
+
 	return nil
 }
 

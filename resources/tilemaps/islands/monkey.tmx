@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" width="40" height="40" tilewidth="64" tileheight="64" backgroundcolor="#002725">
+ <tileset firstgid="1" name="cave-large" tilewidth="64" tileheight="64">
+  <image source="cave-large.png" width="1024" height="1344"/>
+  <terraintypes>
+   <terrain name="Dirt in water" tile="-1"/>
+   <terrain name="Water" tile="-1"/>
+  </terraintypes>
+  <tile id="0" terrain="1,1,1,0"/>
+  <tile id="1" terrain="1,1,0,0"/>
+  <tile id="2" terrain="1,1,0,1"/>
+  <tile id="16" terrain="1,0,1,0"/>
+  <tile id="17" terrain="0,0,0,0"/>
+  <tile id="18" terrain="0,1,0,1"/>
+  <tile id="32" terrain="1,0,1,1"/>
+  <tile id="33" terrain="0,0,1,1"/>
+  <tile id="34" terrain="0,1,1,1"/>
+  <tile id="48" terrain="1,0,0,0"/>
+  <tile id="49" terrain="0,1,0,0"/>
+  <tile id="50" terrain="1,1,1,1"/>
+  <tile id="64" terrain="0,0,1,0"/>
+  <tile id="65" terrain="0,0,0,1"/>
+  <tile id="80" terrain="1,1,0,0"/>
+  <tile id="81" terrain="1,1,0,0"/>
+  <tile id="82" terrain="1,1,0,0"/>
+  <tile id="96" terrain="0,0,1,1"/>
+  <tile id="97" terrain="0,0,1,1"/>
+  <tile id="98" terrain="0,0,1,1"/>
+  <tile id="144" terrain="0,0,0,0"/>
+  <tile id="145" terrain="0,0,0,0"/>
+  <tile id="160" terrain="0,0,0,0"/>
+  <tile id="161" terrain="0,0,0,0"/>
+ </tileset>
+ <tileset firstgid="337" name="Artis_dock_1-large" tilewidth="64" tileheight="64">
+  <image source="Artis_dock_1-large.png" width="2048" height="1024"/>
+ </tileset>
+ <layer name="mainlayer" width="40" height="40">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAA+1W200DMRB0oIILFRAqACqADgIVQCoAAf8g4P9ONJBUii28Yhjtrh8XxA8fo9iO7RvPPhchhAPAYcSC5ud/iCHiMeIpYhlxlNfSeBtxtmeO6e3rhjsTl7eId+BzmvkJjvbIK909NtwpWiF2+fcl4mMmv8TrCnhN+fcsr5d0PI5YRVxkPmJX5NrCT3RK377OvLaZ0zL/jqBBrf+gz7GeLfwG4DAVsMsQLa8drknHm4hN1lK4XUacGDodKHcKP+awc/hNWZdtpRaiJXND20kMTXTnkL8j30a7Ml8B2q2FH+8d4Fv4TeaH/4suHwpfGe9grYef2PKUvvlg8HsIuv8xXxnL/5YvaTlKYkticIT75d1yr6af5n/CR8a4ZwrlWMa70Q5LuBth2dfzP9Zzovs9jsLvHvYzt+fw7S/Cocb/ND3FPzAn8nut3CV3pzOv9F6GZ1/mpemJ8eHFCL9dfiX2NA00/XCfxlXiY4S52MqLkSHofob+pGnA/HCf9aYtjROvlcNN028Mup6YI+4UfrivJk5KeYVzF8eDpafkQC1+0WZanrb8w4PU4FVGGt+Gr5q8gvEN7NvQ29n/tDd5/vHbYP/jWlbyjxKklmEPt66YX4WftYd5YLx6+anm/Vb/xmvWXLOplaNb+9+a/q12buWYOf7n1U9eK82Zm1VXevTTfIjXSnPMJZ5NevhZPmStWfNSrm6NX85f2INbNdmr2Vo/Njd+tXd6Nbm2Zu/Lvp7vWTW5pmbvM3493+OaXFuztXfPyc8tPWrNGe3dc/NLbY/ac6Y3Pnp61J4zc+pba4/ae6ZHv54etedMT3/V26O2nsG1mt7+H//4C3wCQgkLVAAZAAA=
+  </data>
+ </layer>
+ <objectgroup name="gameobjects" width="40" height="40">
+  <object name="barrier-1" type="CollisionWall" x="61" y="65">
+   <polyline points="0,0 197,1 222,81 247,111 282,100 311,67 311,16 319,-17 455,-13 529,63 528,328"/>
+  </object>
+  <object name="barrier-2" type="CollisionWall" x="576" y="384">
+   <polyline points="0,0 -64,64 -64,128 -64,320 64,256 128,256 192,192 172,121 356,104 365,47 522,52 529,268 750,271 754,-82 980,-88 1025,-133 1105,-149 1158,-213 1256,-229 1315,-280 1365,-221 1385,-156 1481,-149 1599,-14 1742,-16 1742,222 1691,259 1796,370 1804,535 1568,698 1551,1876 -276,1886 -265,953 737,932 745,523 532,523 527,785 -339,788 -339,316 -299,290 -304,20 -401,32 -434,-97 -527,-108 -519,-312 -514,-332"/>
+  </object>
+  <object name="spawn-player" type="Hero" x="333" y="217" width="61" height="45">
+   <ellipse/>
+  </object>
+  <object name="dog1" type="Dog" x="847" y="841" width="68" height="60"/>
+  <object name="enemy1" type="Enemy" x="1689" y="755" width="52" height="47"/>
+  <object name="enemy2" type="Enemy" x="482" y="1108" width="52" height="47"/>
+  <object name="tree1" type="Tree" x="671" y="751" width="58" height="92">
+   <properties>
+    <property name="subtype" value="orange"/>
+   </properties>
+  </object>
+  <object name="tree2" type="Tree" x="1625" y="1226" width="36" height="40">
+   <properties>
+    <property name="subtype" value="pink"/>
+   </properties>
+  </object>
+  <object name="tree3" type="Tree" x="1052" y="1601" width="78" height="75">
+   <properties>
+    <property name="subtype" value="blue"/>
+   </properties>
+  </object>
+  <object name="wily tree1" type="Tree" x="1618" y="453" width="68" height="56"/>
+  <object name="wily tree2" type="Tree" x="1982" y="551" width="63" height="59"/>
+ </objectgroup>
+ <layer name="terrain-decoration" width="40" height="40">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAA+3TyQ1BURiG4UMJZm2YtcGGNszaMGvDrA02tGG2827OSuLeSHAl35s8O+HLn8MYpZTbOj5juhhh7Pv1mucmbJpihbUH923YtMUOew/uO7DpiBvuHtwX8BsTRAxx/+vP2rfaQx8DDD/8dhNsSiKHvMM++1ZnmGOB5YffboFNRZRQdthnbx1CGBFEXd7+3Sp8bxUttB1+w946hTQyyLq8/Tey/6UTzrjg6qH/lr11DXU00HR5e6WUUkoppZRSSv1PD8+JY7wAGQAA
+  </data>
+ </layer>
+</map>

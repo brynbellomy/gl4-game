@@ -50,21 +50,6 @@ func (s *System) Update(t common.Time) {
 		spriteCmpt := spriteCmptSlice[spriteCmptIdxs[i]]
 		renderCmpt := renderCmptSlice[renderCmptIdxs[i]]
 
-		if !spriteCmpt.IsTextureLoaded {
-			textureName := spriteCmpt.GetTextureName()
-
-			var tex uint32
-			if textureName != "" {
-				t, err := s.textureCache.Load(textureName)
-				if err != nil {
-					panic(err.Error())
-				}
-				tex = t
-			}
-			spriteCmpt.SetTexture(tex)
-			spriteCmpt.IsTextureLoaded = true
-		}
-
 		renderCmpt.SetTexture(spriteCmpt.GetTexture())
 
 		spriteCmptSlice[spriteCmptIdxs[i]] = spriteCmpt
@@ -75,13 +60,20 @@ func (s *System) Update(t common.Time) {
 func (s *System) ComponentTypes() map[string]entity.CmptTypeCfg {
 	return map[string]entity.CmptTypeCfg{
 		"sprite": {
-			Coder: common.NewCoder(common.CoderConfig{
-				ConfigType: Component{},
-				Tag:        "config",
-				Decode:     func(x interface{}) (interface{}, error) { return x.(Component), nil },
-				Encode:     func(x interface{}) (interface{}, error) { /* @@TODO */ panic("unimplemented") },
-			}),
 			Slice: ComponentSlice{},
+			Coder: common.NewCoder(common.CoderConfig{
+				ConfigType: ComponentCfg{},
+				Tag:        "config",
+				Decode: func(x interface{}) (interface{}, error) {
+					cfg := x.(ComponentCfg)
+					t, err := s.textureCache.Load(cfg.TextureName)
+					if err != nil {
+						return nil, err
+					}
+					return Component{Texture: t}, nil
+				},
+				Encode: func(x interface{}) (interface{}, error) { /* @@TODO */ panic("unimplemented") },
+			}),
 		},
 	}
 }
@@ -109,7 +101,31 @@ func (s *System) WillJoinManager(em *entity.Manager) {
 }
 
 func (s *System) ComponentsWillJoin(eid entity.ID, cmpts []entity.IComponent) error {
-	// no-op
+	// var spriteCmptIdx = -1
+
+	// for i := range cmpts {
+	// 	if _, is := cmpts[i].(Component); is {
+	// 		spriteCmptIdx = i
+	// 		break
+	// 	}
+	// }
+
+	// if spriteCmptIdx != -1 {
+	// 	spriteCmpt := cmpts[spriteCmptIdx].(Component)
+	// 	textureName := spriteCmpt.GetTextureName()
+
+	// 	var tex texture.TextureID
+	// 	if textureName != "" {
+	// 		t, err := s.textureCache.Load(textureName)
+	// 		if err != nil {
+	// 			panic(err.Error())
+	// 		}
+	// 		tex = t
+	// 	}
+	// 	spriteCmpt.SetTexture(tex)
+	// 	cmpts[spriteCmptIdx] = spriteCmpt
+	// }
+
 	return nil
 }
 

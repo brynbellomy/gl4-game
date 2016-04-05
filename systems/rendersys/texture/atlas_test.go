@@ -24,7 +24,6 @@ var _ = Describe("Atlas", func() {
 			},
 		}
 
-		// assetRoot, err := getAssetPath()
 		assetRoot, err := os.Getwd()
 		if err != nil {
 			Fail(err.Error())
