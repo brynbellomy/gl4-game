@@ -15,7 +15,7 @@ entities:
                 z-index: 0
         -   type: render
             config:
-                nodeType: sprite
+                nodeType: tilemap
                 nodeConfig:
                     vertex-shader:   default-sprite.vertex.glsl
                     fragment-shader: default-sprite.fragment.glsl
@@ -23,9 +23,9 @@ entities:
             config:
                 tilemap: islands/monkey.tmx
 
-        -   type: sprite
-            config:
-                texture: cave-large.png
+        # -   type: sprite
+        #     config:
+        #         texture: cave-large.png
 
 
 

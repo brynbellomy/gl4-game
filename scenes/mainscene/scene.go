@@ -119,7 +119,7 @@ func NewMainScene(window *glfw.Window, assetRoot string) (*MainScene, error) {
 		projectileSystem = projectilesys.New()
 		triggerSystem    = triggersys.New()
 		scriptSystem     = scriptsys.New(scriptCache)
-		tilemapSystem    = tilemapsys.New(tilemapCache)
+		tilemapSystem    = tilemapsys.New(tilemapCache, shaderProgramCache, textureCache)
 	)
 
 	var (
